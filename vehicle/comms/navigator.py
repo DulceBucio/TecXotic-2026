@@ -52,13 +52,15 @@ class Navigator:
         mode_id = self.navigator_board.mode_mapping()[mode]
         self.navigator_board.set_mode(mode_id)
 
-    # def drive_manual(self, pitch, roll, throttle, yaw, forward, lateral):
-    #     ## TODO
-    #     self.navigator_board.rc_channels_override_send(
-    #         self.navigator_board.target_system, 
-    #         self.navigator_board.target_component,
-    #         pitch, roll, throttle, yaw, forward, lateral
-    #     )
+    # pitch/forward, roll/lateral, throttle, yaw
+    def drive_manual(self, x, y, z, r, buttons):
+        ## TODO
+        logging.info('Enabling motion through manual mode')
+        logging.info(f'Pitch/Forward: {x}, Roll/Lateral: {y}, Throttle: {z}, Yaw: {r}')
+        self.navigator_board.mav.manual_control_send(
+            self.navigator_board.target_system, 
+            x, y, z, r, buttons
+        )
 
     def send_rc(self, rcin1=65535, rcin2=65535, rcin3=65535, rcin4=65535,
                 rcin5=65535, rcin6=65535, rcin7=65535, rcin8=65535,
@@ -95,8 +97,8 @@ class Navigator:
             video_switch or rcin11,
             rcin12, rcin13, rcin14, rcin15, rcin16, rcin17, rcin18
         )
-        logging.info(f'send_rc')
-        logging.debug(rc_channel_values)
+        logging.info(f'Enabling motion through RC channels')
+        logging.info(rc_channel_values)
         self.navigator_board.mav.rc_channels_override_send(
             self.navigator_board.target_system,
             self.navigator_board.target_component,
@@ -130,7 +132,7 @@ if __name__ == '__main__':
 
     try:
         while True:
-            navigator.send_rc(roll=1700)
+            navigator.drive_manual(500, -500, 250, 500, 0)
             time.sleep(0.1)
     except KeyboardInterrupt:
         navigator.clear_motion()
