@@ -1,15 +1,19 @@
-FROM python:3.10-slim
+FROM python:3.11-slim-bullseye
 
-# System deps
-RUN apt update && apt install -y \
-    gcc \
-    python3-opencv \
-    libgl1 \
+RUN apt-get update && apt-get install -y \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY control_service/ /app
+COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+ENV MAVLINK_URL='tcp:127.0.0.1:5777'
 
 CMD ["python", "main.py"]

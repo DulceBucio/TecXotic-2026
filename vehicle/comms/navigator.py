@@ -10,17 +10,20 @@ logging.basicConfig(
 )
 
 ''' Navigator connection '''
-MAVLINK_URL = os.getenv('MAVLINK_URL', 'udpin:0.0.0.0:14550')
+MAVLINK_URL = os.getenv('MAVLINK_URL', 'tcp:127.0.0.1:5777')
 
 class Navigator:
     ''' Navigator connection and operation management'''
     def __init__(self, thrusters=8):
         self.thrusters=thrusters
+        logging.info(MAVLINK_URL)
         try:
+            logging.info('Trying to get heartbeat...')
             self.navigator_board = mavutil.mavlink_connection(MAVLINK_URL)
             self.navigator_board.wait_heartbeat()
+            logging.info('Heartbeat received')
         except Exception as e:
-            logging.error('Error in connecting to Navigator')
+            logging.error(f'Error in connecting to Navigator: {e}')
             sys.exit(1)
         self.disarm()
         self.change_mode('MANUAL')
@@ -94,8 +97,9 @@ class Navigator:
         )
         logging.info(f'send_rc')
         logging.debug(rc_channel_values)
-        self.navigator_board.rc_channels_override_send(
-            *self.navigator_board.target,
+        self.navigator_board.mav.rc_channels_override_send(
+            self.navigator_board.target_system,
+            self.navigator_board.target_component,
             *rc_channel_values
         )
 
