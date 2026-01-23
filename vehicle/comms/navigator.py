@@ -4,49 +4,45 @@ import sys
 import logging 
 import time
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
-)
-
 ''' Navigator connection '''
 MAVLINK_URL = os.getenv('MAVLINK_URL', 'tcp:127.0.0.1:5777')
+logger = logging.getLogger(__name__)
 
 class Navigator:
     ''' Navigator connection and operation management'''
     def __init__(self, thrusters=8):
         self.thrusters=thrusters
-        logging.info(MAVLINK_URL)
+        logger.info(MAVLINK_URL)
         try:
-            logging.info('Trying to get heartbeat...')
+            logger.info('Trying to get heartbeat...')
             self.navigator_board = mavutil.mavlink_connection(MAVLINK_URL)
             self.navigator_board.wait_heartbeat()
-            logging.info('Heartbeat received')
+            logger.info('Heartbeat received')
         except Exception as e:
-            logging.error(f'Error in connecting to Navigator: {e}')
+            logger.error(f'Error in connecting to Navigator: {e}')
             sys.exit(1)
         self.disarm()
         self.change_mode('MANUAL')
 
     def arm(self):
         ''' Set up thrusters (necessary for any movement) '''
-        logging.info('Arming motors...')
+        logger.info('Arming motors...')
         self.navigator_board.arducopter_arm()
         self.navigator_board.motors_armed_wait()
-        logging.info('MOTORS ARMED')
+        logger.info('MOTORS ARMED')
 
     def disarm(self):
         ''' Turn off thrusters '''
-        logging.info('Disarming motors...')
+        logger.info('Disarming motors...')
         self.navigator_board.arducopter_disarm()
         self.navigator_board.motors_disarmed_wait()
-        logging.info('MOTORS DISARMED')
+        logger.info('MOTORS DISARMED')
 
     def change_mode(self, mode):
         mode = mode.upper()
         ''' Sets autopilot mode by id '''
         if mode not in self.navigator_board.mode_mapping():
-            logging.error('Unknown mode')
+            logger.error('Unknown mode')
             sys.exit(1)
 
         mode_id = self.navigator_board.mode_mapping()[mode]
@@ -55,8 +51,8 @@ class Navigator:
     # pitch/forward, roll/lateral, throttle, yaw
     def drive_manual(self, x, y, z, r, buttons):
         ## TODO
-        logging.info('Enabling motion through manual mode')
-        logging.info(f'Pitch/Forward: {x}, Roll/Lateral: {y}, Throttle: {z}, Yaw: {r}')
+        logger.info('Enabling motion through manual mode')
+        logger.info(f'Pitch/Forward: {x}, Roll/Lateral: {y}, Throttle: {z}, Yaw: {r}')
         self.navigator_board.mav.manual_control_send(
             self.navigator_board.target_system, 
             x, y, z, r, buttons
@@ -97,8 +93,8 @@ class Navigator:
             video_switch or rcin11,
             rcin12, rcin13, rcin14, rcin15, rcin16, rcin17, rcin18
         )
-        logging.info(f'Enabling motion through RC channels')
-        logging.info(rc_channel_values)
+        logger.info(f'Enabling motion through RC channels')
+        logger.info(rc_channel_values)
         self.navigator_board.mav.rc_channels_override_send(
             self.navigator_board.target_system,
             self.navigator_board.target_component,
@@ -108,19 +104,19 @@ class Navigator:
 
     def clear_motion(self, stopped_pwm=1500):
         ''' Set 6 RC motion channels to a stopped value '''
-        logging.info('Clearing motion')
+        logger.info('Clearing motion')
         self.send_rc(*[stopped_pwm]*6)
 
     def get_thruster_outputs(self):
         ''' Returns (and notes) the first 'self.thrusters' servo PWM values.
         Offset by 1500 to make it clear how each thruster is active.
         '''
-        logging.debug('get_thruster_outputs')
+        logger.debug('get_thruster_outputs')
         servo_outputs = self.navigator_board.recv_match(type='SERVO_OUTPUT_RAW',
                                         blocking=True).to_dict()
         thruster_outputs = [servo_outputs[f'servo{i+1}_raw'] - 1500
                             for i in range(self.thrusters)]
-        logging.info(f'{thruster_outputs=}')
+        logger.info(f'{thruster_outputs=}')
         return thruster_outputs
 
     
