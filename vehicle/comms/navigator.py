@@ -1,8 +1,8 @@
-from pymavlink import mavutil
 import os
 import sys
 import logging 
 import time
+from comms.mavactive import mavactive, mavlink, mavutil
 
 ''' Navigator connection '''
 MAVLINK_URL = os.getenv('MAVLINK_URL', 'tcp:127.0.0.1:5777')
@@ -12,7 +12,7 @@ class Navigator:
     ''' Navigator connection and operation management'''
     def __init__(self, thrusters=8):
         self.thrusters=thrusters
-        logger.info(MAVLINK_URL)
+        logger.info(f'Connection to navigator with: {MAVLINK_URL}')
         try:
             logger.info('Trying to get heartbeat...')
             self.navigator_board = mavutil.mavlink_connection(MAVLINK_URL)
@@ -21,8 +21,29 @@ class Navigator:
         except Exception as e:
             logger.error(f'Error in connecting to Navigator: {e}')
             sys.exit(1)
+
+        self.heart = mavactive(self.navigator_board, mavlink.MAV_TYPE_GCS)
         self.disarm()
         self.change_mode('MANUAL')
+
+    def status(self):
+        armed = bool(self.navigator_board.motors_armed())
+        mode = self.navigator_board.flightmode
+
+        return {
+            'is_armed': armed,
+            'mode': mode
+        }
+    
+    def __enter__(self):
+        '''Send regular heartbeats'''
+        self.heart.revive()
+        return self
+    
+    def __exit__(self):
+        '''Disarm and stop heartbeats'''
+        logger.info('Exit: Disarming and stoping heart')
+        self.cleanup(disconnect=False)
 
     def arm(self):
         ''' Set up thrusters (necessary for any movement) '''
@@ -50,8 +71,6 @@ class Navigator:
 
     # pitch/forward, roll/lateral, throttle, yaw
     def drive_manual(self, x, y, z, r, buttons):
-        ## TODO
-        logger.info('Enabling motion through manual mode')
         logger.info(f'Pitch/Forward: {x}, Roll/Lateral: {y}, Throttle: {z}, Yaw: {r}')
         self.navigator_board.mav.manual_control_send(
             self.navigator_board.target_system, 
@@ -118,18 +137,33 @@ class Navigator:
                             for i in range(self.thrusters)]
         logger.info(f'{thruster_outputs=}')
         return thruster_outputs
-
     
-## TESTING AS A SCRIPT
-if __name__ == '__main__':
-    navigator = Navigator()
-    navigator.change_mode('MANUAL')
-    navigator.arm()
+    def disconnect(self):
+        '''Close the mavlink connection'''
+        logger.info('Disconnect: Closing mavlink connection')
+        self.navigator_board.close()
 
-    try:
-        while True:
-            navigator.drive_manual(500, -500, 250, 500, 0)
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        navigator.clear_motion()
-        navigator.disarm()
+    def cleanup(self, *, disconnect=True):
+        '''Attemp to disarm and stop sending heartbeats'''
+        try:
+            self.disarm()
+        except OSError:
+            pass
+        self.heart.kill()
+
+        if disconnect:
+            self.disconnect()
+
+# TESTING AS A SCRIPT
+# if __name__ == '__main__':
+#     navigator = Navigator()
+#     navigator.change_mode('MANUAL')
+#     navigator.arm()
+
+#     try:
+#         while True:
+#             navigator.drive_manual(500, -500, 250, 500, 0)
+#             time.sleep(0.1)
+#     except KeyboardInterrupt:
+#         navigator.clear_motion()
+#         navigator.disarm()
