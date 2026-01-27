@@ -45,6 +45,7 @@ def handle_arm(arming):
 
 async def echo(websocket):
     clients.add(websocket)
+    is_control_client = True 
     try:
         async for message in websocket:
             try:
@@ -59,7 +60,7 @@ async def echo(websocket):
                 if 'mode' in commands:
                     handle_mode(commands['mode'])
 
-                if navigator.status()['is_armed'] and 'drive_method' in commands:
+                if 'drive_method' in commands:
                     drive_method = commands['drive_method']
                     last_motion['method'] = drive_method
                     last_motion['data'] = commands
@@ -88,10 +89,11 @@ async def echo(websocket):
         logger.info(f'Error in echo(): {e}')
     
     finally:
-        clients.remove(websocket)
-        logger.info('Client disconnected')
-        navigator.clear_motion()
-        navigator.disarm()
+        clients.discard(websocket)
+        if is_control_client and not clients:
+            logger.info('Last control client left: disarming')
+            navigator.clear_motion()
+            navigator.disarm()
 
 async def motion_loop():
     while True:
@@ -127,7 +129,7 @@ def run():
 
 async def main():
     asyncio.create_task(motion_loop())
-    async with websockets.serve(echo, '0.0.0.0', 55000):
+    async with websockets.serve(echo, '0.0.0.0', 55000, process_request=lambda *args, **kwargs: None):
         logger.info('WebSocket server started on port 55000. Waiting for commands')
         await asyncio.Future() 
 

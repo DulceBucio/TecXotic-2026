@@ -1,4 +1,2 @@
 pymavlink
-opencv-python
 websockets
-numpy
