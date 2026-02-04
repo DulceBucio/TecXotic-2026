@@ -1,0 +1,26 @@
+.top-navbar-container {
+    display:flex;
+    height: 10%;
+    width: 100%;
+    padding: 1%;
+}
+
+.logo-container {
+    display: flex;
+    flex: 1;
+    background-color: aqua;
+}
+
+.tecxotic-logo {
+    transform: scale(0.8);
+}
+
+.tecxotic-name {
+    transform: scale(0.5);
+}
+
+.buttons-container {
+    display: flex;
+    justify-items: flex-end;
+    flex:2;
+}
