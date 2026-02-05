@@ -1,0 +1,1 @@
+export const onboard_computer = 'http://192.168.2.2'

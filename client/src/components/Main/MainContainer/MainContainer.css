@@ -12,14 +12,31 @@
     display: flex;
     height: 90vh;
     width: 95vw;
-    flex-direction: row;
+    flex-direction: column;
     border-radius: 20px;
     border-style: solid;
     border-color: var(--neonBlue);
     box-shadow: 0px 0px 5px 0px var(--neonBlue);
+    padding: 1%;
 }
 
 .top-container {
     display: flex;
     width: 100%;
+    align-items: center;
+}
+
+.video-container {
+    width: 100%;
+    height: 80%;
+}
+
+.placeholder-img {
+    width: 100%;
+    height: 100%;
+}
+
+.bottom-container {
+    width: 100%;
+    height: 100%;
 }

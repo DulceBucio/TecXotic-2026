@@ -1,0 +1,24 @@
+.bottom-navbar-container {
+    display: flex;
+    gap: 1%;
+    align-items: center;
+    height: 100%;
+}
+
+.left-group-container {
+    display:flex;
+    width: 33%;
+    justify-content: center;
+}
+
+.gyro-container {
+    display:flex;
+    width: 33%; 
+    justify-content: center;
+}
+
+.right-group-container {
+    display:flex;
+    width: 33%;
+    justify-content: center;
+}
