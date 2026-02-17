@@ -11,7 +11,11 @@ type OnIceNegotiationCallback = (candidate: RTCIceCandidateInit) => void
 type OnMediaNegotiationCallback = (description: RTCSessionDescriptionInit) => void
 
 /* An abstraction for the Mavlink Camera Manager WebRTC Signaller
-Websocket transport layer between client and BlueOS */
+Websocket transport layer between client and BlueOS, 
+refer to BlueRobotics Cockpit implementation:
+https://github.com/bluerobotics/cockpit/blob/8ad4d4426f9ee4c07263b0ef456c0b222f519926/src/libs/webrtc/signaller.ts
+*/
+
 export class Signaller {
     private ws!: WebSocket
     public onOpen?: OnOpenCallback
@@ -39,6 +43,13 @@ export class Signaller {
         }
     >()
 
+    /** 
+    * Creates a new Signaller instance and inmediately attemps to stablish a WebSocket connection with the Signalling server 
+    * @param {URL} url of the signalling server
+    * @param {boolean} shouldReconnect - If it should try to reconnect if the ws connection is lost
+    * @param {OnOpenCallback} onOpen - An optional callback for when signalling opens its websocket connection
+    * @param {OnStatusChangeCallback} onStatusChange - An optional callback for internal status change
+    */
     constructor(url: URL, shouldReconnect: boolean, onOpen?: OnOpenCallback, onStatusChange?: OnStatusChangeCallback) {
         this.onOpen = onOpen
         this.onStatusChange = onStatusChange
@@ -57,6 +68,12 @@ export class Signaller {
         }
     }
 
+    /**
+     * To manage temporary websocket event listeners 
+     * @param {keyof WebSocketEventMap} type 
+     * @param {WebSocketEventMap} listener 
+     * @param {boolean | AddEventListenerOptions } options 
+     */
     public addEventListener<T extends keyof WebSocketEventMap>(
         type: T, listener: (event: WebSocketEventMap[T]) => void, options?: boolean | AddEventListenerOptions
     ): void {
@@ -68,6 +85,13 @@ export class Signaller {
         this.ws.addEventListener(type, listener, options)
     }
 
+    /**
+     * Remove a specific websocket listener
+     * @param {keyof WebSocketEventMap} type 
+     * @param {WebSocketEventMap} listener 
+     * @param {boolean | AddEventListenerOptions} options 
+     * @returns 
+     */
     public removeEventListener<T extends keyof WebSocketEventMap>(
         type: T,
         listener: (event: WebSocketEventMap[T]) => void,
@@ -94,6 +118,12 @@ export class Signaller {
         selectedListeners.delete(listener as (type: WebSocketEventMap[keyof WebSocketEventMap]) => void)
       }
 
+    /**
+     * Removes all listener of specific type, used during shutdown
+     * @param {string | undefined} type 
+     * @param {boolean} removeFromListeners 
+     * @returns 
+     */
     public removeAllListeners<T extends keyof WebSocketEventMap>(
         type: T, removeFromListeners: boolean): void {
             if (!this.listeners.size || !this.listeners.has(type)) {
@@ -109,8 +139,13 @@ export class Signaller {
             }
         }
 
+    /**
+     * Request a unique peer ID from the signalling server
+     * @param {OnConsumerIdReceivedCallback} onConsumerIdReceived - A callback for when the requested consumer id is received
+     */
     public requestConsumerId(onConsumerIdReceived: OnConsumerIdReceivedCallback): void {
         const signaller = this
+        /* Attatch temporary message listener */
         this.addEventListener('message', function consumerIdListener(ev: MessageEvent): void {
             try {
                 const message: Message = JSON.parse(ev.data)
@@ -141,6 +176,7 @@ export class Signaller {
             },
         }
 
+        // Send peerid question
         try {
             this.ws.send(JSON.stringify(message))
             signaller.onStatusChange?.('Consumer Id requested, waiting answer')
@@ -151,9 +187,20 @@ export class Signaller {
         }
     }
 
+    /**
+     * whether or not websocket is open/connected
+     * @returns {boolean} 
+     */
     public isConnected(): boolean {
         return this.ws.readyState === this.ws.OPEN
     }
+
+    /**
+     * Requests the signalling server for a new session ID
+     * @param {} consumerId - Unique ID of the consumer, given by the signalling server
+     * @param {} producerId - Unique ID of the producer 
+     * @param {} onSessionReceived - A callback for when the requested session id is received
+     */
 
     public requestSessionId(
         consumerId: string,
@@ -161,6 +208,7 @@ export class Signaller {
         onSessionReceived: OnSessionIdReceivedCallback
     ): void {
         const signaller = this
+        // attatch temporary message listener
         signaller.addEventListener('message', function sessionStartListener(ev: MessageEvent): void {
             try {
                 const message: Message = JSON.parse(ev.data)
@@ -200,6 +248,7 @@ export class Signaller {
             }
         }
 
+        // sends question 
         try {
             this.ws.send(JSON.stringify(message))
             signaller.onStatusChange?.('Session Id requested, waiting answer...')
@@ -210,6 +259,13 @@ export class Signaller {
         }
     }
 
+    /**
+     * Sends a local ICE candidate to the signalling server
+     * @param {string} sessionId 
+     * @param {string} consumerId 
+     * @param {string} producerId 
+     * @param {RTCIceCandidate} ice - The ICE candidate to be sent to the signalling server, provided by the client side (this)
+     */
     public sendIceNegotiation(sessionId: string, consumerId: string, 
         producerId: string, ice: RTCIceCandidate
     ): void {
@@ -237,6 +293,13 @@ export class Signaller {
         }
     }
 
+    /**
+     * Send an SDP offer to the signalling server
+     * @param {string} sessionId 
+     * @param {string} consumerId 
+     * @param {string} producerId 
+     * @param {RTCSessionDescriptionInit} sdp - THE SDP to be sent to the signalling server, given by the client (here)
+     */
     public sendMediaNegotiation(
         sessionId: string, consumerId: string, producerId: string, sdp: RTCSessionDescriptionInit
     ): void {
@@ -263,6 +326,13 @@ export class Signaller {
         }
     }
     
+    /**
+     * Listens to a endSession question received by the signalling server
+     * @param {string} consumerId 
+     * @param {string} producerId 
+     * @param {string} sessionId 
+     * @param {OnSessionEndCallback} onSessionEnd - a callback for when an 'endSession' message is received
+     */
     public parseEndSessionQuestion(
         consumerId: string, 
         producerId: string,
@@ -310,6 +380,14 @@ export class Signaller {
         })
     }
     
+    /**
+     * Registers a session in the internal routing registry
+     * @param {string} sessionId 
+     * @param {string} consumerId 
+     * @param {string} producerId 
+     * @param {OnIceNegotiationCallback} onIce 
+     * @param {OnMediaNegotiationCallback} onMedia 
+     */
     public registerSession(
         sessionId: string,
         consumerId: string, 
@@ -325,10 +403,18 @@ export class Signaller {
         })
     }
 
+    /**
+     * Removes session from routing registry
+     * @param {string} sessionId 
+     */
     public unregisterSession(sessionId: string): void {
         this.sessionRegistry.delete(sessionId)
     }
 
+    /**
+     * Waits for server response listing available camera streams
+     * @param {OnAvailableStreamsCallback} onAvailableStreams - callback for when answer is received
+     */
     public parseAvailableStreamAnswer(onAvailableStreams: OnAvailableStreamsCallback): void {
         const signaller = this
         this.addEventListener('message', function availableStreamListener(ev: MessageEvent): void {
@@ -357,6 +443,11 @@ export class Signaller {
         })
     }
 
+    /**
+     * Central router negotiation for messages
+     * @param {MessageEvent} ev 
+     * @returns 
+     */
     private handleMessage(ev: MessageEvent): void {
         try {
             const message: Message = JSON.parse(ev.data)
@@ -400,6 +491,11 @@ export class Signaller {
         }
     }
 
+    /**
+     * Gracefully shut downs and cleans up the registered callbacks
+     * @param {string} reason - the id of the caller
+     * @returns 
+     */
     public end(reason: string): void {
         this.ws.removeEventListener('open', this.boundOnOpen)
         this.ws.removeEventListener('error', this.boundOnError)
@@ -418,9 +514,15 @@ export class Signaller {
         this.ws.close()
     }
 
+    /**
+     * Creates and configures a new websocket connection 
+     * @returns {WebSocket} - the websocket object for signalling connection
+     */
     private connect(): WebSocket {
+        // instantiate websocket
         const ws = new WebSocket(this.url.toString())
 
+        // attatch internal lifecycle listeners (open, close, error, message)
         ws.addEventListener('open', this.boundOnOpen)
         ws.addEventListener('error', this.boundOnError)
         ws.addEventListener('close', this.boundOnClose)
@@ -432,6 +534,9 @@ export class Signaller {
         return ws
     }
 
+    /**
+     * Re-stablishes websocket connection after disconnection
+     */
     private reconnect(): void {
         const status = `Reconnecting to signalling`
         console.debug('[WebRTC] [Signaller] '  + status)
@@ -439,6 +544,7 @@ export class Signaller {
 
         this.end('reconnect')
 
+        // Closes previous socket safely
         const oldWs = this.ws
         
         oldWs.onclose = null
@@ -446,6 +552,8 @@ export class Signaller {
         oldWs.onmessage = null
         oldWs.onmessage = null
 
+
+        // attempt new connection
         try {
             this.ws = this.connect()
         } catch (error) {
@@ -453,6 +561,10 @@ export class Signaller {
         }
     }
 
+    /**
+     * internal lifecycle handler for websocket
+     * @param {Event} event 
+     */
     private onOpenCallback(event: Event): void {
         const status = `Signaller Connected`
         console.debug('[WebRTC] [Signaller] ' + status, event)
@@ -461,6 +573,10 @@ export class Signaller {
         this.onOpen?.(event)
     }
 
+    /**
+     * internal lifecycle handler for websocket
+     * @param {Event} event 
+     */
     private onCloseCallback(event: CloseEvent): void {
         const status = `Signaller connection closed`
         console.debug('[WebRTC] [Signaller] ' + status, event)
@@ -475,6 +591,10 @@ export class Signaller {
         }
     }
 
+    /**
+     * internal lifecycle handler for websocket
+     * @param {Event} event 
+     */
     private onErrorCallback(event: Event): void {
         const status = `Signaller connection error`
         console.debug('[WebRTC] [Signaller] ' + status, event)
