@@ -1,4 +1,4 @@
-import type { Answer, Message } from "../../types/Signalling"
+import type { Answer, Message, Negotiation } from "../../types/Signalling"
 import { type CameraStream } from "../../types/CameraStream"
 
 type OnOpenCallback = (event: Event) => void
@@ -61,9 +61,15 @@ export class Signaller {
 
         try { 
             this.ws = this.connect()
+            this.addEventListener("message", (ev: MessageEvent) => {
+                console.log("[SIGNALLER RAW MESSAGE]", ev.data)
+            })
+    
         } catch (error) {
             console.error(`Could not stablish initial connection: ${error}`)
         }
+
+        
     }
 
     /**
@@ -159,6 +165,7 @@ export class Signaller {
 
                 signaller.removeEventListener('message', consumerIdListener)
                 const consumerId: string = answer.content.id
+                console.log(`Consumer Id arrived: ${consumerId}`)
                 signaller.onStatusChange?.(`Consumer Id arrived: ${consumerId}`)
                 onConsumerIdReceived(consumerId)
             } catch (error) {
@@ -206,6 +213,7 @@ export class Signaller {
         producerId: string,
         onSessionReceived: OnSessionIdReceivedCallback
     ): void {
+        console.log('[WebRTC] [Signaller] Requesting session ID...', consumerId, producerId)
         const signaller = this
         // attatch temporary message listener
         signaller.addEventListener('message', function sessionStartListener(ev: MessageEvent): void {
@@ -226,6 +234,7 @@ export class Signaller {
                 }
 
                 signaller.removeEventListener('message', sessionStartListener)
+                console.log(`Session Id arrived: ${sessionId}`)
                 signaller.onStatusChange?.(`Session Id arrived: ${sessionId}`)
                 onSessionReceived(sessionId)
             } catch (error) {
@@ -338,7 +347,7 @@ export class Signaller {
         sessionId: string,
         onSessionEnd: OnSessionEndCallback
     ): void {
-        console.debug(
+        console.log(
             '[WebRTC] [Signaller] Registering parseEndSessionQuestion callbacks for ' +
             `Consumer ${consumerId}, ` + `Producer ${producerId}, ` + `Session ${sessionId}`
         )
@@ -442,24 +451,81 @@ export class Signaller {
         })
     }
 
+    public parseNegotiation(
+        consumerId: string,
+        producerId: string,
+        sessionId: string,
+        onIceNegotiation?: OnIceNegotiationCallback,
+        onMediaNegotiation?: OnMediaNegotiationCallback
+    ): void {
+        console.debug('[WebRTC] [Signaller] Registering parseNegotiation callbacks for ' +
+            `Consumer ${consumerId}, ` + `Producer ${producerId}, ` + `Session ${sessionId}` 
+        )
+        this.addEventListener('message', (ev: MessageEvent): void => {
+            try {
+                const message: Message = JSON.parse(ev.data)
+
+                if (message.type !== 'negotiation') {
+                    return
+                }
+
+                const negotiation: Negotiation = message.content
+
+                if (
+                    negotiation.content.consumer_id !== consumerId ||
+                    negotiation.content.producer_id !== producerId ||
+                    negotiation.content.session_id !== sessionId
+                ) {
+                    return
+                }
+
+                switch (negotiation.type) {
+                    case 'iceNegotiation':
+                        this.onStatusChange?.('iceNegotiation arrived')
+                        onIceNegotiation?.(negotiation.content.ice)
+                        break
+                    case 'mediaNegotiation':
+                        this.onStatusChange?.('mediaNegotiation arrived')
+                        onMediaNegotiation?.(negotiation.content.sdp)
+                        break
+                }
+            } catch (error) {
+                const errorMsg = `Failed parsing received message. Error: ${error}. Data: ${ev.data}`
+                console.error('[WebRTC] [Signaller] ' + errorMsg)
+                this.onStatusChange?.(errorMsg)
+                return
+            }
+        })
+    }
+
+    private handleMessage(ev: MessageEvent): void {
+        try {
+            const message: Message = JSON.parse(ev.data)
+
+            switch(message.type) {
+                case 'answer':
+                    console.log('[WebRTC] [Signaller] Answer received: ', message)
+                    break
+                case 'negotiation':
+                    this.handleNegotiation(message.content)
+                    break
+            }
+        } catch (error) {
+            console.error('[WebRTC] [Signaller] Error: ', error)
+        }
+    }
+    
     /**
      * Central router negotiation for messages
      * @param {MessageEvent} ev 
      * @returns 
      */
-    private handleMessage(ev: MessageEvent): void {
-        console.log(ev.data)
+    private handleNegotiation(content: any): void {
         try {
-            const message: Message = JSON.parse(ev.data)
-
-            if (message.type !== 'negotiation') {
-                return
-            }
-
-            const negotiation = message.content
-            const sessionId = negotiation.content.session_id
-            const consumerId = negotiation.content.consumer_id
-            const producerId = negotiation.content.producer_id
+            const negotiation = content
+            const sessionId = content.session_id
+            const consumerId = content.consumer_id
+            const producerId = content.producer_id
 
             const session = this.sessionRegistry.get(sessionId)
 
@@ -524,11 +590,6 @@ export class Signaller {
         const ws = new WebSocket(this.url.toString())
     
         console.log('[WebRTC] [Signaller] Opening WebSocket')
-        console.log("CONNECT WS", ws)
-    
-        ws.addEventListener("open", (e) => {
-            console.log("RAW OPEN EVENT", e)
-        })
     
         const openHandler = (e: Event) => this.onOpenCallback(e)
         const closeHandler = (e: CloseEvent) => this.onCloseCallback(e)
@@ -539,10 +600,6 @@ export class Signaller {
         ws.addEventListener("open", openHandler)
         ws.addEventListener("close", closeHandler)
         ws.addEventListener("error", errorHandler)
-    
-        ws.addEventListener("message", (ev: MessageEvent) => {
-            this.handleMessage(ev)
-        })
     
         return ws
     }

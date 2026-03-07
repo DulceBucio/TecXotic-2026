@@ -86,6 +86,7 @@ export class Session {
 
         this.peerConnection = this.createRTCPeerConnection(rtcConfiguration)
         this.updateStatus('[WebRTC] [Session] Creating Session...')
+        console.log('[WebRTC] [Session] Session Created')
     }
 
     public hasEnded(): boolean {

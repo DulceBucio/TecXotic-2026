@@ -149,7 +149,7 @@ export class WebRTCManager {
     }
 
     private startSession(stream: CameraStream): void {
-        if (this.session && this.session.hasEnded()) {
+        if (this.session && !this.session.hasEnded()) {
             console.debug('[WebRTC] Session already active')
             return
         }
@@ -177,6 +177,12 @@ export class WebRTCManager {
     }
 
     private onSessionIdReceived(stream: CameraStream, producerId: string, receivedSessionId: string): void {
+        console.log('[WebRTC] onSessionIdReceived: ', receivedSessionId)
+        if (this.session && !this.session.hasEnded()) {
+            console.warn("[WebRTC] Session already exists, ignoring duplicate sessionId")
+            return
+        }
+        
         this.session = new Session(
             receivedSessionId, this.consumerId!, stream, this.signaller, this.rtcConfiguration, this.selectedICEIPs, 
             this.selectedICEProtocols, (event: RTCTrackEvent): void => this.onTrackAdded(event), (): void => this.onPeerConnected(),
@@ -184,12 +190,17 @@ export class WebRTCManager {
             (status: string): void => this.updateStreamStatus(status)
         )
 
+        console.log('[WebRTC] Session Created')
         this.signaller.parseEndSessionQuestion(this.consumerId!, producerId, this.session.id, (sessionId, reason) => {
             console.debug(`[WebRTC] [Session] ${sessionId} ended. Reason: ${reason}`)
             this.stopSession(reason)
         })
 
-        this.signaller.registerSession(this.session.id, this.consumerId!, producerId, this.session.onIncomingICE.bind(this.session), 
+        this.signaller.parseNegotiation(
+            this.consumerId!, 
+            producerId,
+            this.session.id,
+            this.session.onIncomingICE.bind(this.session),
             this.session.onIncomingSDP.bind(this.session)
         )
 
