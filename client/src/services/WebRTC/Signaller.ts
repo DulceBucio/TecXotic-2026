@@ -26,13 +26,7 @@ export class Signaller {
         Map<(type: WebSocketEventMap[keyof WebSocketEventMap]) => void, boolean | AddEventListenerOptions | undefined>
     >
     private shouldReconnect: boolean
-
-    private boundOnOpen = this.onOpenCallback.bind(this)
-    private boundOnClose = this.onCloseCallback.bind(this)
-    private boundOnError = this.onErrorCallback.bind(this)
-
-
-
+    
     private sessionRegistry = new Map<
         string, 
         {
@@ -56,6 +50,10 @@ export class Signaller {
         this.listeners = new Map()
         this.shouldReconnect = shouldReconnect
         this.url = url
+
+        this.onOpenCallback = this.onOpenCallback.bind(this)
+        this.onErrorCallback = this.onErrorCallback.bind(this)
+        this.onCloseCallback = this.onCloseCallback.bind(this)
 
         const status = `Connecting to signalling server on ${url}`
         console.debug('[WebRTC] [Signaller] ' + status)
@@ -144,6 +142,7 @@ export class Signaller {
      * @param {OnConsumerIdReceivedCallback} onConsumerIdReceived - A callback for when the requested consumer id is received
      */
     public requestConsumerId(onConsumerIdReceived: OnConsumerIdReceivedCallback): void {
+        console.log('[WebRTC] [Signaller] Requesting consumer ID')
         const signaller = this
         /* Attatch temporary message listener */
         this.addEventListener('message', function consumerIdListener(ev: MessageEvent): void {
@@ -449,6 +448,7 @@ export class Signaller {
      * @returns 
      */
     private handleMessage(ev: MessageEvent): void {
+        console.log(ev.data)
         try {
             const message: Message = JSON.parse(ev.data)
 
@@ -497,9 +497,10 @@ export class Signaller {
      * @returns 
      */
     public end(reason: string): void {
-        this.ws.removeEventListener('open', this.boundOnOpen)
-        this.ws.removeEventListener('error', this.boundOnError)
-        this.ws.removeEventListener('close', this.boundOnClose)
+    
+        this.ws.removeEventListener('open', this.onOpenCallback)
+        this.ws.removeEventListener('error', this.onErrorCallback)
+        this.ws.removeEventListener('close', this.onCloseCallback)
 
         this.removeAllListeners('open', false)
         this.removeAllListeners('error', false)
@@ -519,21 +520,33 @@ export class Signaller {
      * @returns {WebSocket} - the websocket object for signalling connection
      */
     private connect(): WebSocket {
-        // instantiate websocket
+
         const ws = new WebSocket(this.url.toString())
-
-        // attatch internal lifecycle listeners (open, close, error, message)
-        ws.addEventListener('open', this.boundOnOpen)
-        ws.addEventListener('error', this.boundOnError)
-        ws.addEventListener('close', this.boundOnClose)
-
-        ws.addEventListener('message', (ev: MessageEvent) => {
+    
+        console.log('[WebRTC] [Signaller] Opening WebSocket')
+        console.log("CONNECT WS", ws)
+    
+        ws.addEventListener("open", (e) => {
+            console.log("RAW OPEN EVENT", e)
+        })
+    
+        const openHandler = (e: Event) => this.onOpenCallback(e)
+        const closeHandler = (e: CloseEvent) => this.onCloseCallback(e)
+        const errorHandler = (e: Event) => this.onErrorCallback(e)
+    
+        console.log("ATTACHING OPEN LISTENER", openHandler)
+    
+        ws.addEventListener("open", openHandler)
+        ws.addEventListener("close", closeHandler)
+        ws.addEventListener("error", errorHandler)
+    
+        ws.addEventListener("message", (ev: MessageEvent) => {
             this.handleMessage(ev)
         })
-
+    
         return ws
     }
-
+    
     /**
      * Re-stablishes websocket connection after disconnection
      */
@@ -566,6 +579,7 @@ export class Signaller {
      * @param {Event} event 
      */
     private onOpenCallback(event: Event): void {
+        console.log("CLASS OPEN HANDLER", this.ws)
         const status = `Signaller Connected`
         console.debug('[WebRTC] [Signaller] ' + status, event)
         this.onStatusChange?.(status)

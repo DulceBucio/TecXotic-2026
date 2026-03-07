@@ -72,6 +72,7 @@ export class WebRTCManager {
     }
 
     private startConsumer(): void {
+        console.log('[WebRTC] startConsumer called')
         this.hasEnded = false
         if (this.consumerId === undefined) {
             this.signaller.requestConsumerId((newConsumerId: string): void => {
