@@ -4,7 +4,7 @@ import { onboard_computer } from "../../components/Constants"
 
 export class CameraManagerService {
     async getStreams(): Promise<CameraStream[]> {
-        const res = await fetch(`${onboard_computer}:6020/streams`)
+        const res = await fetch(`http://${onboard_computer}:6020/streams`)
 
         if (!res.ok) {
             throw new Error(`Failed to fetch streams: ${res.status}`)

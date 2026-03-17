@@ -5,29 +5,34 @@
     import { useWebRTCStream } from '../../../hooks/useWebRTCStream'
     import { webRTCSignallingURI } from '../../Constants'
     import { useEffect } from 'react'
+    import { startGamepadPolling } from '../../../input/gamepad'
 
     export default function MainContainer() {
-        const rtcConfiguration: RTCConfiguration = {
-            iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" }
-            ],
-            iceCandidatePoolSize: 2
-        }
+        // const rtcConfiguration: RTCConfiguration = {
+        //     iceServers: [
+        //     { urls: "stun:stun.l.google.com:19302" },
+        //     { urls: "stun:stun1.l.google.com:19302" }
+        //     ],
+        //     iceCandidatePoolSize: 2
+        // }
 
-        const {
-            videoRef,
-            streams,
-            start,
-            stop,
-            connected
-        } = useWebRTCStream(webRTCSignallingURI, rtcConfiguration)
+        // const {
+        //     videoRef,
+        //     streams,
+        //     start,
+        //     stop,
+        //     connected
+        // } = useWebRTCStream(webRTCSignallingURI, rtcConfiguration)
 
+        // useEffect(() => {
+        //     if (streams.length > 0 && !connected) {
+        //         start(streams[0])
+        //     }
+        // }, [streams, connected, start])
+        
         useEffect(() => {
-            if (streams.length > 0 && !connected) {
-                start(streams[0])
-            }
-        }, [streams, connected, start])
+            startGamepadPolling()
+        }, [])
         
         return (
             <>
@@ -37,7 +42,7 @@
                             <TopNavBar/>
                         </div>
                         <div className='video-container'>
-                            <video ref={videoRef} autoPlay playsInline />
+                            {/* <video ref={videoRef} autoPlay playsInline /> */}
                         </div>
                         <div className='bottom-container'>
                             <BottomNavBar />
