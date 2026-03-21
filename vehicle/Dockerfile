@@ -2,9 +2,11 @@ FROM python:3.11-slim-bullseye
 
 RUN apt-get update && apt-get install -y \
     git \
+    gcc \
+    g++ \
     build-essential \
     libxml2-dev \
-    libxslt-dev \
+    libxslt1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
