@@ -1,0 +1,76 @@
+.tasks-toggle-button {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 5;
+    width: 42px;
+    height: 32px;
+    border-radius: 10px 0 0 10px;
+    border: 1px solid #ffb400;
+    background: rgba(255, 180, 0, 0.12);
+    color: #ffcc4d;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow:
+        0 0 8px rgba(255, 180, 0, 0.35),
+        inset 0 0 6px rgba(255, 180, 0, 0.12);
+    transition: 0.25s ease;
+}
+
+.tasks-toggle-button:hover {
+    background: rgba(255, 180, 0, 0.2);
+}
+
+.tasks-toggle-button.active {
+    right: 190px;
+}
+
+.tasks-panel {
+    position: absolute;
+    top: 70px;
+    right: -180px;
+    width: 160px;
+    padding: 14px 10px;
+    border-left: 1px solid rgba(255, 180, 0, 0.7);
+    border-top: 1px solid rgba(255, 180, 0, 0.35);
+    border-bottom: 1px solid rgba(255, 180, 0, 0.35);
+    border-radius: 14px 0 0 14px;
+    background: rgba(7, 18, 30, 0.72);
+    box-shadow:
+        0 0 10px rgba(255, 180, 0, 0.18),
+        inset 0 0 8px rgba(255, 180, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: right 0.3s ease;
+    z-index: 4;
+}
+
+.tasks-panel.open {
+    right: 0;
+}
+
+.tasks-panel-header {
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffcc4d;
+    border: 1px solid rgba(255, 180, 0, 0.7);
+    border-radius: 999px;
+    padding: 3px 10px;
+    background: rgba(255, 180, 0, 0.08);
+    box-shadow: 0 0 6px rgba(255, 180, 0, 0.2);
+}
+
+.task-box {
+    width: 80px;
+    height: 56px;
+    margin-left: auto;
+    border: 1px solid rgba(255, 180, 0, 0.8);
+    border-radius: 10px;
+    background: rgba(255, 180, 0, 0.04);
+    box-shadow:
+        inset 0 0 6px rgba(255, 180, 0, 0.08),
+        0 0 6px rgba(255, 180, 0, 0.12);
+}

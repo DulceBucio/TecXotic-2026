@@ -4,7 +4,8 @@
     import PlaceholderImg from '../../../assets/placeholder-img.png'
     import { useWebRTCStream } from '../../../hooks/useWebRTCStream'
     import { webRTCSignallingURI } from '../../Constants'
-    import { useEffect } from 'react'
+    import TasksPanel from '../TasksPanel/TasksPanel'
+    import { useEffect, useState } from 'react'
     import { startGamepadPolling } from '../../../input/gamepad'
 
     export default function MainContainer() {
@@ -30,9 +31,15 @@
         //     }
         // }, [streams, connected, start])
         
+        const [showTasks, setShowTasks] = useState<boolean>(false)
+
         useEffect(() => {
             startGamepadPolling()
         }, [])
+
+        const toggleTasksPanel = () => {
+        setShowTasks((prev) => !prev)
+    }
         
         return (
             <>
@@ -42,7 +49,13 @@
                             <TopNavBar/>
                         </div>
                         <div className='video-container'>
+                            <div className='video-frame'>
+                                <TasksPanel
+                                showTasks={showTasks}
+                                toggleTasksPanel={toggleTasksPanel}
+                                />
                             {/* <video ref={videoRef} autoPlay playsInline /> */}
+                            </div>
                         </div>
                         <div className='bottom-container'>
                             <BottomNavBar />
