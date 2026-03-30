@@ -132,7 +132,7 @@ class Navigator:
         '''
         logger.debug('get_thruster_outputs')
         servo_outputs = self.navigator_board.recv_match(type='SERVO_OUTPUT_RAW',
-                                        blocking=True).to_dict()
+                                        blocking=False).to_dict()
         thruster_outputs = [servo_outputs[f'servo{i+1}_raw'] - 1500
                             for i in range(self.thrusters)]
         logger.info(f'{thruster_outputs=}')

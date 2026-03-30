@@ -52,13 +52,13 @@ class VehicleController {
         setInterval(() => {
             const state = controlStore.getState()
             if (!state.connected) return
-            // if (!state.armed) return
+            if (!state.armed) return
+            
             const command = {
                 drive_method: state.drive_method,
                 mode: state.mode,
                 ... state.motion
             }
-
             this.commandService.send(command)
         }, this.CONTROL_RATE)
     }

@@ -69,7 +69,6 @@ async def echo(websocket):
                     "message_received": True,
                     "arm_result": arm_result,
                     "navigator_status": navigator.status(),
-                    "thrusters_value": navigator.get_thruster_outputs()
                 }
 
                 await websocket.send(json.dumps(status))

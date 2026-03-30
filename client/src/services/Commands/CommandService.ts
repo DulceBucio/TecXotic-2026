@@ -10,7 +10,6 @@ export class CommandService {
 
         this.ws.onmessage = (event) => {
             const data = JSON.parse(event.data)
-            console.log('[Command Service] From vehicle: ', data)
         }
     }
 
