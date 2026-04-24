@@ -1,2 +1,4 @@
 pymavlink
 websockets
+gpiozero
+

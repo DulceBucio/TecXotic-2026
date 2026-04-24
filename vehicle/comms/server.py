@@ -3,10 +3,12 @@ from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 import asyncio
 import json
 from comms.navigator import Navigator
+from comms.tool import Tool
 import logging 
 import time
 
 navigator = Navigator()
+tool = Tool()
 clients = set()
 logger = logging.getLogger(__name__)
 
@@ -64,6 +66,15 @@ async def echo(websocket):
                     drive_method = commands['drive_method']
                     last_motion['method'] = drive_method
                     last_motion['data'] = commands
+
+                if 'buttons' in commands:
+                    claw_action = commands['buttons']
+                    if claw_action == 0:
+                        break
+                    elif claw_action == 1:
+                        tool.control_gripper('open')
+                    elif claw_action == 2:
+                        tool.control_gripper('close')
                 
                 status = {
                     "message_received": True,
