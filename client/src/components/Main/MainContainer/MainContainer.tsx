@@ -7,8 +7,9 @@
     import TasksPanel from '../TasksPanel/TasksPanel'
     import { useEffect, useState } from 'react'
     import { startGamepadPolling } from '../../../input/gamepad'
-
+    import { useNavigate } from 'react-router-dom'
     export default function MainContainer() {
+        const navigate = useNavigate()
         // const rtcConfiguration: RTCConfiguration = {
         //     iceServers: [
         //     { urls: "stun:stun.l.google.com:19302" },
@@ -46,6 +47,7 @@
                 <div className='main-container'>
                     <div className='content-frame'>
                         <div className='top-container'>
+                            <button onClick={() => navigate('/model')}>View 3D Model</button>  {/* ← add this */}
                             <TopNavBar/>
                         </div>
                         <div className='video-container'>
