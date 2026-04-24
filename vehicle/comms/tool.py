@@ -16,14 +16,18 @@ class Tool:
     def gripper_stop(self):
         gripper_open.off()
         gripper_close.off()
+        logger.info('Claw stopped')
+
 
     def control_gripper(self, action: str):
         if action == 'open':
             self.gripper_stop()
             gripper_open.on()
+            logger.info('Claw open')
         elif action == 'close':
             self.gripper_stop()
             gripper_close.on()
+            logger.info('Claw closed')
         elif action == 'stop':
             self.gripper_stop()
         else: 

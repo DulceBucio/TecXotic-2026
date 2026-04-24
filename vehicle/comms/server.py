@@ -70,7 +70,7 @@ async def echo(websocket):
                 if 'buttons' in commands:
                     claw_action = commands['buttons']
                     if claw_action == 0:
-                        break
+                        tool.gripper_stop()
                     elif claw_action == 1:
                         tool.control_gripper('open')
                     elif claw_action == 2:

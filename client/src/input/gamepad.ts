@@ -48,12 +48,22 @@ export function startGamepadPolling() {
     const yaw = scale(rightX)        // rotation
     const throttle = scale(-rightY)  // ascend/descend
 
+    let clawButtons = 0
+
+    if (buttonX.pressed && !buttonY.pressed) {
+      clawButtons = 1  // open
+    } else if (buttonY.pressed && !buttonX.pressed) {
+      clawButtons = 2  // close
+    } else {
+      clawButtons = 0  // stop
+    }
+
     vehicleController.driveDefault({
       pitch,
       roll,
       yaw,
       throttle,
-      buttons: 0
+      buttons: clawButtons
     })
 
     gp.buttons.forEach((btn, i) => {
@@ -102,7 +112,7 @@ export function startGamepadPolling() {
           prevButtons[i] = pressed
         })
 
-    console.log(`Commands: pitch: ${pitch}, roll: ${roll}, yaw: ${yaw}, throttle: ${throttle}`)
+    console.log(`[Commands] pitch: ${pitch}, roll: ${roll}, yaw: ${yaw}, throttle: ${throttle}, buttons: ${clawButtons}`)
     requestAnimationFrame(poll)
   }
 
