@@ -8,7 +8,7 @@ import logging
 import time
 
 navigator = Navigator()
-tool = Tool()
+tool = Tool(navigator.navigator_board)
 clients = set()
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,7 @@ async def echo(websocket):
                     last_motion['data'] = commands
 
                 if 'buttons' in commands:
+                    logger.info('claw commands received')
                     claw_action = commands['buttons']
                     if claw_action == 0:
                         tool.gripper_stop()

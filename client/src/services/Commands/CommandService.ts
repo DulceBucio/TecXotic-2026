@@ -14,6 +14,7 @@ export class CommandService {
     }
 
     public send(data: any) {
+        // console.log(`[Commands Service] ${data}`)
         if(this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(data))
         }

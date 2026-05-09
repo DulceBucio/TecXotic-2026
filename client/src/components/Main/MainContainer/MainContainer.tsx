@@ -47,7 +47,7 @@
                 <div className='main-container'>
                     <div className='content-frame'>
                         <div className='top-container'>
-                            <button onClick={() => navigate('/model')}>View 3D Model</button>  {/* ← add this */}
+                            {/* <button onClick={() => navigate('/model')}>View 3D Model</button>  ← add this */}
                             <TopNavBar/>
                         </div>
                         <div className='video-container'>

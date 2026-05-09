@@ -10,12 +10,17 @@ function scale(value: number) {
   return Math.round(value * 1000)
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
+
 let prevButtons: boolean[] = []
 
 export function startGamepadPolling() {
   function poll() {
 
     const gp = navigator.getGamepads()[0]
+    
 
     if (!gp) {
       console.log('[Commands] No controller')
@@ -31,11 +36,11 @@ export function startGamepadPolling() {
     let buttonLB = gp.buttons[4]
     let buttonRB = gp.buttons[5]
 
-    let buttonLT = gp.buttons[6]
-    let buttonRT = gp.buttons[7]
-
     let buttonBack = gp.buttons[8]
     let buttonStart = gp.buttons[9]
+
+    let buttonUp = gp.buttons[12]
+    let buttonDown = gp.buttons[13]
 
     // joysticks
     const leftX  = applyDeadzone(gp.axes[0]) // lateral
@@ -43,16 +48,26 @@ export function startGamepadPolling() {
     const rightX = applyDeadzone(gp.axes[2]) // yaw
     const rightY = applyDeadzone(gp.axes[3]) // vertical
 
-    const pitch = scale(-leftY)      // forward/back
+    // triggers
+    let buttonLT = gp.buttons[6].value
+    let buttonRT = gp.buttons[7].value
+
+    const lt = applyDeadzone(buttonLT)
+    const rt = applyDeadzone(buttonRT)
+
+    const triggerForward = (lt + rt / 2)
+    const triggerYawDelta = rt - lt
+
+    const pitch = scale(clamp(-leftY + triggerForward, -1, 1))      // forward/back
     const roll = scale(leftX)        // lateral
-    const yaw = scale(rightX)        // rotation
-    const throttle = scale(-rightY)  // ascend/descend
+    const yaw = scale(clamp(rightX + triggerYawDelta, -1, 1))        // rotation
+    const throttle = Math.round(-rightY * 500) + 500    // ascend/descend
 
     let clawButtons = 0
 
-    if (buttonX.pressed && !buttonY.pressed) {
+    if (buttonUp.pressed && !buttonDown.pressed) {
       clawButtons = 1  // open
-    } else if (buttonY.pressed && !buttonX.pressed) {
+    } else if (buttonDown.pressed && !buttonUp.pressed) {
       clawButtons = 2  // close
     } else {
       clawButtons = 0  // stop
