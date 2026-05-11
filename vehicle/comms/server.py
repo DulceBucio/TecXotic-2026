@@ -71,11 +71,15 @@ async def echo(websocket):
                     logger.info('claw commands received')
                     claw_action = commands['buttons']
                     if claw_action == 0:
-                        tool.gripper_stop()
+                        tool.control_gripper('stop')
                     elif claw_action == 1:
                         tool.control_gripper('open')
                     elif claw_action == 2:
                         tool.control_gripper('close')
+                    elif claw_action == 3:
+                        tool.control_gripper('left-roll')
+                    elif claw_action == 4:
+                        tool.control_gripper('right-roll')
                 
                 status = {
                     "message_received": True,

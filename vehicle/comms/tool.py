@@ -1,42 +1,45 @@
 import logging
-from comms.mavactive import mavutil, mavlink
+from comms.mavactive import mavutil
 
 logger = logging.getLogger(__name__)
 
-RELAY_OPEN  = 0  # RELAY1 → pin 10
-RELAY_CLOSE = 1  # RELAY2 → pin 11
+GRIPPER_CHANNEL = 10
+ROLL_CHANNEL = 11
+SERVO_OPEN    = 1900
+SERVO_CLOSE   = 1100
+SERVO_NEUTRAL = 1500
 
 class Tool:
     def __init__(self, navigator_board):
         self.navigator_board = navigator_board
         logger.info('Tool initialized')
 
-    def _set_relay(self, relay_index: int, state: int):
+    def _set_servo(self, channel: int, pwm: int):
         self.navigator_board.mav.command_long_send(
             self.navigator_board.target_system,
             self.navigator_board.target_component,
-            mavutil.mavlink.MAV_CMD_DO_SET_RELAY,
+            mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
             0,
-            relay_index,
-            state,
+            channel,
+            pwm,
             0, 0, 0, 0, 0
         )
 
-    def gripper_stop(self):
-        self._set_relay(RELAY_OPEN, 0)
-        self._set_relay(RELAY_CLOSE, 0)
-        logger.info('Claw stopped')
-
     def control_gripper(self, action: str):
         if action == 'open':
-            self.gripper_stop()
-            self._set_relay(RELAY_OPEN, 1)
+            self._set_servo(GRIPPER_CHANNEL, SERVO_OPEN)
             logger.info('Claw open')
         elif action == 'close':
-            self.gripper_stop()
-            self._set_relay(RELAY_CLOSE, 1)
+            self._set_servo(GRIPPER_CHANNEL, SERVO_CLOSE)
             logger.info('Claw closed')
+        elif action == 'left-roll':
+            self._set_servo(ROLL_CHANNEL, SERVO_OPEN)
+            logger.info('Left roll applied')
+        elif action == 'right-roll':
+            self._set_servo(ROLL_CHANNEL, SERVO_CLOSE)
+            logger.info('Right roll applied')
         elif action == 'stop':
-            self.gripper_stop()
+            self._set_servo(GRIPPER_CHANNEL, SERVO_NEUTRAL)
+            logger.info('Claw stopped')
         else:
             logger.error(f'Unknown gripper action: {action}')
