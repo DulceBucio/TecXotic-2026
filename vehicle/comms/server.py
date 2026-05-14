@@ -1,3 +1,4 @@
+import cv2
 import websockets
 from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 import asyncio
@@ -5,6 +6,7 @@ import json
 from comms.navigator import Navigator
 import logging 
 import time
+from capture import Capture
 
 navigator = Navigator()
 clients = set()
@@ -126,8 +128,22 @@ def run():
         navigator.clear_motion()
         navigator.disarm()
 
+def generate_video_stream(capture):
+    while True:
+        ret, frame = capture.get_frame()
+        if ret:
+            (flag, encodedImage) = cv2.imencode(".jpg", frame)
+            if not flag:
+                continue
+            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
+                   bytearray(encodedImage) + b'\r\n')
+            
 async def main():
     asyncio.create_task(motion_loop())
+    cap = Capture(0)
+    generate_video_stream(cap)
+
+
     async with websockets.serve(echo, '0.0.0.0', 55000, process_request=lambda *args, **kwargs: None):
         logger.info('WebSocket server started on port 55000. Waiting for commands')
         await asyncio.Future() 
