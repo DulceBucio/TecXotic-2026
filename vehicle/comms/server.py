@@ -140,12 +140,13 @@ def generate_video_stream(capture):
             
 async def main():
     asyncio.create_task(motion_loop())
-    cap = Capture(0)
-    generate_video_stream(cap)
 
 
     async with websockets.serve(echo, '0.0.0.0', 55000, process_request=lambda *args, **kwargs: None):
         logger.info('WebSocket server started on port 55000. Waiting for commands')
+        cap = Capture(0)
+        generate_video_stream(cap)
+
         await asyncio.Future() 
 
 # package example:

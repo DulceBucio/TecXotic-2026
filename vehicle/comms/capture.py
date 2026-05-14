@@ -21,7 +21,7 @@ class Capture:
     def get_frame(self):
         return self.cap.read()
 
-    def release(self):
+    def release(self)
         self.cap.release()
 
 def generate(capture):
