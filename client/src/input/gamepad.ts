@@ -28,42 +28,65 @@ export function startGamepadPolling() {
       return
     }
 
-    let buttonA = gp.buttons[0]
-    let buttonB = gp.buttons[1]
-    let buttonX = gp.buttons[2]
-    let buttonY = gp.buttons[3]
+    // ROCK
+    // let buttonA = gp.buttons[0]
+    // let buttonB = gp.buttons[1]
+    // let buttonX = gp.buttons[2]
+    // let buttonY = gp.buttons[3]
 
-    let buttonLB = gp.buttons[4]
-    let buttonRB = gp.buttons[5]
+    // let buttonLB = gp.buttons[4]
+    // let buttonRB = gp.buttons[5]
 
-    let buttonBack = gp.buttons[8]
-    let buttonStart = gp.buttons[9]
+    // let buttonBack = gp.buttons[8]
+    // let buttonStart = gp.buttons[9]
+
+    // // joysticks
+    // const leftX  = applyDeadzone(gp.axes[0]) // lateral
+    // const leftY  = applyDeadzone(gp.axes[1]) // forward
+    // const rightX = applyDeadzone(gp.axes[2]) // yaw
+    // const rightY = applyDeadzone(gp.axes[3]) // vertical
+
+    // // triggers
+    // let buttonLT = gp.buttons[6].value
+    // let buttonRT = gp.buttons[7].value
+
+    // const lt = applyDeadzone(buttonLT)
+    // const rt = applyDeadzone(buttonRT)
+
+    // const triggerForward = (lt + rt) / 2 
+    // const triggerYawDelta = lt - rt
+
+    // const pitch = scale(clamp(-leftY + triggerForward, -1, 1))      // forward/back
+    // const roll = scale(leftX)        // lateral
+    // const yaw = scale(clamp(rightX + triggerYawDelta, -1, 1))        // rotation
+    // const throttle = Math.round(-rightY * 500) + 500    // ascend/descend
 
     let buttonUp = gp.buttons[12]
     let buttonDown = gp.buttons[13]
     let buttonLeft = gp.buttons[14]
     let buttonRight = gp.buttons[15]
+    
+    // ROKI
+    const buttonLB    = gp.buttons[4]
+    const buttonRB    = gp.buttons[5]
 
-    // joysticks
-    const leftX  = applyDeadzone(gp.axes[0]) // lateral
-    const leftY  = applyDeadzone(gp.axes[1]) // forward
-    const rightX = applyDeadzone(gp.axes[2]) // yaw
-    const rightY = applyDeadzone(gp.axes[3]) // vertical
+    const rightX = applyDeadzone(gp.axes[2])
+    const rightY = applyDeadzone(gp.axes[3])
 
-    // triggers
-    let buttonLT = gp.buttons[6].value
-    let buttonRT = gp.buttons[7].value
+    const lt = applyDeadzone(gp.buttons[6].value)
+    const rt = applyDeadzone(gp.buttons[7].value)
+    const throttleInput = rt - lt
 
-    const lt = applyDeadzone(buttonLT)
-    const rt = applyDeadzone(buttonRT)
+    let yawInput = 0
+    if (buttonRB.pressed) yawInput += 1
+    if (buttonLB.pressed) yawInput -= 1
 
-    const triggerForward = (lt + rt / 2)
-    const triggerYawDelta = rt - lt
+    const pitch    = scale(-rightY)
+    const roll     = scale(rightX)
+    const yaw      = scale(clamp(yawInput, -1, 1))
+    const throttle = Math.round(throttleInput * 500) + 500
 
-    const pitch = scale(clamp(-leftY + triggerForward, -1, 1))      // forward/back
-    const roll = scale(leftX)        // lateral
-    const yaw = scale(clamp(rightX + triggerYawDelta, -1, 1))        // rotation
-    const throttle = Math.round(-rightY * 500) + 500    // ascend/descend
+    // roki 
 
     let clawButtons = 0
 
@@ -187,6 +210,28 @@ export function startGamepadPolling() {
 //     const roll     = scale(rightX)
 //     const yaw      = scale(clamp(yawInput, -1, 1))
 //     const throttle = Math.round(throttleInput * 500) + 500
+
+//     let clawButtons = 0
+
+//     if (buttonUp.pressed && !buttonDown.pressed) {
+//       clawButtons = 1  // open
+//     } else if (buttonDown.pressed && !buttonUp.pressed) {
+//       clawButtons = 2  // close
+//     } else if (buttonLeft.pressed && !buttonRight.pressed) {
+//       clawButtons = 3
+//     } else if (buttonRight.pressed && !buttonLeft.pressed) {
+//       clawButtons = 4
+//     } else {
+//       clawButtons = 0  // stop
+//     }
+
+//     vehicleController.driveDefault({
+//       pitch,
+//       roll,
+//       yaw,
+//       throttle,
+//       buttons: clawButtons
+//     })
 
 //     vehicleController.driveDefault({
 //       pitch,
