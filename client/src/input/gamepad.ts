@@ -71,7 +71,7 @@ export function startGamepadPolling() {
     const buttonRB    = gp.buttons[5]
 
     const rightX = applyDeadzone(gp.axes[2])
-    const rightY = applyDeadzone(gp.axes[3])
+    const leftY = applyDeadzone(gp.axes[1])
 
     const lt = applyDeadzone(gp.buttons[6].value)
     const rt = applyDeadzone(gp.buttons[7].value)
@@ -81,7 +81,7 @@ export function startGamepadPolling() {
     if (buttonRB.pressed) yawInput += 1
     if (buttonLB.pressed) yawInput -= 1
 
-    const pitch    = scale(-rightY)
+    const pitch    = scale(-leftY)
     const roll     = scale(rightX)
     const yaw      = scale(clamp(yawInput, -1, 1))
     const throttle = Math.round(throttleInput * 500) + 500
