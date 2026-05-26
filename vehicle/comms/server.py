@@ -1,3 +1,5 @@
+import threading
+
 import websockets
 from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 import asyncio
@@ -7,7 +9,9 @@ from comms.tool import Tool
 import logging 
 import time
 import cv2
-from .capture import Capture
+
+from .capture import Capture, generate
+from flask import Flask, Response
 
 navigator = Navigator()
 tool = Tool(navigator.navigator_board)
@@ -144,21 +148,34 @@ def run():
         navigator.clear_motion()
         navigator.disarm()
 
-async def generate_video(capture):
-    while True:
-        ret, frame = capture.get_frame()
-        if ret:
-            (flag, encodedImage) = cv2.imencode(".jpg", frame)
-            if not flag:
-                continue
-            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
-                   bytearray(encodedImage) + b'\r\n')
+# The whole flask initialization
+flask_app = Flask(__name__)
+capture = None 
+
+@flask_app.route('/video')
+def video_feed():
+    if capture is None:
+        return Response("Camera not ready", status=503)
+    return Response(
+        generate(capture),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
+
+def run_flask():
+    logger.info('Starting Flask video server on port 5000')
+    flask_app.run(host='0.0.0.0', port=5000, threaded=True)
+
 async def main():
+    global capture
     capture = Capture(0)
+
+    # Flask runs in a separate thread to avoid blocking the asyncio event loop
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+
     asyncio.create_task(motion_loop())
     async with websockets.serve(echo, '0.0.0.0', 55000, process_request=lambda *args, **kwargs: None):
         logger.info('WebSocket server started on port 55000. Waiting for commands')
-        asyncio.create_task(generate_video(capture))  # Start video generation in the background
         await asyncio.Future() 
 
 # package example:

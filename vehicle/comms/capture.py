@@ -1,6 +1,9 @@
 import cv2
+import threading
+
 class Capture:
     def __init__(self, source=0):
+        self.lock = threading.Lock()
         try:
             cap = cv2.VideoCapture(source)
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
