@@ -10,27 +10,27 @@
     import { useNavigate } from 'react-router-dom'
     export default function MainContainer() {
         const navigate = useNavigate()
-        // const rtcConfiguration: RTCConfiguration = {
-        //     iceServers: [
-        //     { urls: "stun:stun.l.google.com:19302" },
-        //     { urls: "stun:stun1.l.google.com:19302" }
-        //     ],
-        //     iceCandidatePoolSize: 2
-        // }
+        const rtcConfiguration: RTCConfiguration = {
+            iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" }
+            ],
+            iceCandidatePoolSize: 2
+        }
 
-        // const {
-        //     videoRef,
-        //     streams,
-        //     start,
-        //     stop,
-        //     connected
-        // } = useWebRTCStream(webRTCSignallingURI, rtcConfiguration)
+        const {
+            videoRef,
+            streams,
+            start,
+            stop,
+            connected
+        } = useWebRTCStream(webRTCSignallingURI, rtcConfiguration)
 
-        // useEffect(() => {
-        //     if (streams.length > 0 && !connected) {
-        //         start(streams[0])
-        //     }
-        // }, [streams, connected, start])
+        useEffect(() => {
+            if (streams.length > 0 && !connected) {
+                start(streams[0])
+            }
+        }, [streams, connected, start])
         
         const [showTasks, setShowTasks] = useState<boolean>(false)
 
@@ -56,7 +56,7 @@
                                 showTasks={showTasks}
                                 toggleTasksPanel={toggleTasksPanel}
                                 />
-                            {/* <video ref={videoRef} autoPlay playsInline /> */}
+                            <video ref={videoRef} autoPlay playsInline />
                             </div>
                         </div>
                         <div className='bottom-container'>
