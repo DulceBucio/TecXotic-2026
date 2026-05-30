@@ -1,4 +1,5 @@
 import './TasksPanel.css'
+import { vehicleController } from '../../../controllers/vehicleController'
 
 type TasksPanelProps = {
     showTasks: boolean
@@ -23,7 +24,12 @@ export default function TasksPanel({
 
                 <div className='task-box'></div>
                 <div className='task-box'></div>
-                <div className='task-box'></div>
+                <div className='task-box'>
+                    <button onClick={() => vehicleController.setRoutine('start')}>Start Routine</button>
+                    <button onClick={() => vehicleController.setRoutine('pause')}>Pause Routine</button>
+                    <button onClick={() => vehicleController.setRoutine('resume')}>Resume Routine</button>
+                    <button onClick={() => vehicleController.setRoutine('stop')}>Stop Routine</button>
+                </div>
             </div>
         </>
     )

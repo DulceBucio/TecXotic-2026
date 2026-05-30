@@ -258,13 +258,15 @@ async def echo(websocket):
                         if routine_task and not routine_task.done():
                             routine_task.cancel()
                         routine_result = 'stopped'
-                if 'alpha' in commands:
-                    ALPHA = commands['alpha']
-                    routine_result = f'alpha set to {ALPHA}'
+                    if 'alpha' in commands:
+                        global ALPHA  # falta esto
+                        ALPHA = commands['alpha']
+                        routine_result = f'alpha set to {ALPHA}'
 
-                if 'beta' in commands:
-                    BETA = commands['beta']
-                    routine_result = f'beta set to {BETA}'
+                    if 'beta' in commands:
+                        global BETA   # falta esto
+                        BETA = commands['beta']
+                        routine_result = f'beta set to {BETA}'
                     
                 if routine_task and not routine_task.done():
                     r_status = 'running' if routine_paused.is_set() else 'paused'
