@@ -36,6 +36,10 @@ class VehicleController {
         controlStore.updateCommand(input)
     }
 
+    setRoutine(action: 'start' | 'pause' | 'resume' | 'stop') {
+        this.commandService.send({ routine: action })
+    }
+
     stop() {
         controlStore.resetMotion()
         const state = controlStore.getState()
@@ -52,13 +56,21 @@ class VehicleController {
         setInterval(() => {
             const state = controlStore.getState()
             if (!state.connected) return
-            // if (!state.armed) return
+            if (!state.armed) return
+
+            const m = state.speedMultiplier
+            
             const command = {
                 drive_method: state.drive_method,
                 mode: state.mode,
-                ... state.motion
-            }
 
+                pitch: Math.round(state.motion.pitch * m),
+                roll: Math.round(state.motion.roll * m),
+                yaw: Math.round(state.motion.yaw * m),
+                throttle: Math.round(state.motion.throttle * m),
+
+                buttons: state.motion.buttons
+            }
             this.commandService.send(command)
         }, this.CONTROL_RATE)
     }

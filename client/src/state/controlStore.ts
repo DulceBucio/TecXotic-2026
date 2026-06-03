@@ -13,7 +13,8 @@ class ControlStore {
             throttle: 0,
             yaw: 0,
             buttons: 0
-        }
+        },
+        speedMultiplier: 1
     }
 
     getState() {
@@ -47,6 +48,10 @@ class ControlStore {
         }
     }
 
+    setSpeed(multiplier: number) {
+        this.state.speedMultiplier = multiplier
+    }
+    
     resetMotion() {
         this.state.motion = {
             pitch: 0,

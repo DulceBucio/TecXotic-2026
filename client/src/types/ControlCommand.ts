@@ -15,5 +15,6 @@ export interface ControlState {
     drive_method: DriveMethod
     speed: number
     motion: MotionCommand
+    speedMultiplier: number
 }
 

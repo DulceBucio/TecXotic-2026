@@ -1,5 +1,6 @@
 import './TasksPanel.css'
 import { Box, Anchor, Gem } from 'lucide-react'
+import { vehicleController } from '../../../controllers/vehicleController'
 
 type TasksPanelProps = {
     showTasks: boolean
