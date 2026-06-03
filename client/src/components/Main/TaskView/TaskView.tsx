@@ -1,6 +1,7 @@
 import './TaskView.css'
 import BlueCrabReference from '../../../assets/blue-crab-reference.png'
 import { Box, Anchor, Gem, X, CheckCircle, Camera, Play } from 'lucide-react'
+import { vehicleController } from '../../../controllers/vehicleController'
 
 type TaskViewProps = {
     selectedTask: string | null
@@ -224,6 +225,12 @@ export default function TaskView({
                 {renderTaskContent()}
 
                 <div className='task-view-actions'>
+                    {/* TODO: estilizar botones */}
+                    <button onClick={() => vehicleController.setRoutine('start')}>Start Routine</button>
+                    <button onClick={() => vehicleController.setRoutine('pause')}>Pause Routine</button>
+                    <button onClick={() => vehicleController.setRoutine('resume')}>Resume Routine</button>
+                    <button onClick={() => vehicleController.setRoutine('stop')}>Stop Routine</button>
+
                     <button className='task-action-btn'>
                         <Play size={15} />
                         start
