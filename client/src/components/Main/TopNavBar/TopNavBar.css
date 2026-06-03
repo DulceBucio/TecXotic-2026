@@ -17,6 +17,9 @@
     box-shadow:
         0 0 10px rgba(0, 217, 255, 0.3),
         inset 0 0 12px rgba(0, 217, 255, 0.1);
+
+    position: relative;
+    z-index: 20;
 }
 
 .logo-container {
@@ -33,10 +36,12 @@
     height: 22px;
 }
 
-
 .buttons-container {
     display: flex;
+    align-items: center;
     gap: 12px;
+
+    position: relative;
 }
 
 .top-btn-small {
@@ -47,7 +52,6 @@
     appearance: none;
     -webkit-appearance: none;
 
-
     border-radius: 12px;
     border: 1.5px solid #00d9ff;
 
@@ -55,7 +59,6 @@
         180deg,
         rgba(10, 35, 55, 0.95) 0%,
         rgba(5, 20, 35, 0.95) 100%
-        
     );
 
     color: #e6fbff;
@@ -72,6 +75,7 @@
 
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
 }
 
@@ -91,7 +95,6 @@
         180deg,
         rgba(10, 35, 55, 0.95) 0%,
         rgba(5, 20, 35, 0.95) 100%
-        
     );
 
     color: #e6fbff;
@@ -113,11 +116,12 @@
 
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
 }
 
-
-.top-btn:hover {
+.top-btn:hover,
+.top-btn-small:hover {
     transform: translateY(-1px);
 
     box-shadow:
@@ -125,11 +129,10 @@
         inset 0 0 10px rgba(0, 217, 255, 0.2);
 }
 
-
-.top-btn:active {
+.top-btn:active,
+.top-btn-small:active {
     transform: scale(0.96);
 }
-
 
 .top-btn::before {
     content: '';
@@ -143,16 +146,199 @@
     pointer-events: none;
 }
 
-.top-btn svg {
-    stroke: #00d9ff;
-    filter: drop-shadow(0 0 4px rgba(0, 217, 255, 0.6));
-}
-
+.top-btn svg,
 .top-btn-small svg {
     stroke: #00d9ff;
     filter: drop-shadow(0 0 4px rgba(0, 217, 255, 0.6));
 }
 
-.top-btn-small:hover svg {
+.top-btn-small:hover svg,
+.top-btn:hover svg {
     filter: drop-shadow(0 0 8px rgba(0, 217, 255, 0.9));
+}
+
+/* SETTINGS */
+
+.settings-wrapper {
+    position: relative;
+}
+
+/* Botón rojo cuando settings está abierto */
+.settings-active {
+    border-color: #A20032;
+
+    background: linear-gradient(
+        180deg,
+        rgba(90, 14, 20, 0.95) 0%,
+        rgba(38, 5, 10, 0.95) 100%
+    );
+
+    color: #ffecec;
+
+    box-shadow:
+        0 0 12px #A20032,
+        inset 0 0 10px rgba(255, 59, 59, 0.25);
+}
+
+.settings-active svg {
+    stroke: #A20032;
+    filter: drop-shadow(0 0 7px #A20032);
+}
+
+.settings-active::before {
+    border-color: rgba(255, 59, 59, 0.35);
+}
+
+/* Panel desplegable */
+.settings-dropdown {
+    position: absolute;
+    top: 48px;
+    right: 0;
+
+    width: 245px;
+
+    padding: 14px 16px 12px;
+
+    border-radius: 16px;
+    border: 1.5px solid #A20032;
+
+    background: linear-gradient(
+        180deg,
+        rgba(18, 10, 18, 0.98) 0%,
+        rgba(6, 16, 28, 0.98) 100%
+    );
+
+    box-shadow:
+        0 0 18px #A20032,
+        inset 0 0 14px rgba(255, 59, 59, 0.12);
+
+    z-index: 50;
+}
+
+.settings-dropdown::before {
+    content: '';
+    position: absolute;
+
+    top: -7px;
+    right: 42px;
+
+    width: 12px;
+    height: 12px;
+
+    transform: rotate(45deg);
+
+    background: rgba(18, 10, 18, 0.98);
+
+    border-left: 1.5px solid #A20032;
+    border-top: 1.5px solid #A20032;
+}
+
+.settings-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 12px;
+
+    color: #e6fbff;
+
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.speed-value {
+    min-width: 38px;
+
+    color: #A20032;
+    text-align: right;
+
+    text-shadow: 0 0 7px #A20032;
+}
+
+.settings-speed-slider {
+    width: 100%;
+
+    appearance: none;
+    -webkit-appearance: none;
+
+    height: 5px;
+    border-radius: 999px;
+
+    background: linear-gradient(
+        90deg,
+        rgba(255, 59, 59, 0.95),
+        rgba(0, 217, 255, 0.55)
+    );
+
+    outline: none;
+    cursor: pointer;
+}
+
+.settings-speed-slider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+
+    width: 15px;
+    height: 15px;
+
+    border-radius: 50%;
+    border: 1.5px solid #A20032;
+
+    background: #ffecec;
+
+    box-shadow:
+        0 0 9px #A20032,
+        0 0 16px #A20032;
+}
+
+.settings-speed-slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+
+    border-radius: 50%;
+    border: 1.5px solid #A20032;
+
+    background: #ffecec;
+
+    box-shadow:
+        0 0 9px #A20032,
+        0 0 16px #A20032;
+}
+
+.speed-scale {
+    display: flex;
+    justify-content: space-between;
+
+    margin-top: 8px;
+
+    color: rgba(230, 251, 255, 0.65);
+
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+}
+
+ /*indicadores control y wifi*/
+
+.status-active {
+    border-color: #A20032;
+
+    background: linear-gradient(
+        180deg,
+        rgba(90, 14, 20, 0.95) 0%,
+        rgba(38, 5, 10, 0.95) 100%
+    );
+
+    color: #ffecec;
+
+    box-shadow:
+        0 0 12px #A20032,
+        inset 0 0 10px rgba(255, 59, 59, 0.25);
+}
+
+.status-active svg {
+    stroke: #A20032;
+    filter: drop-shadow(0 0 7px #A20032);
 }
