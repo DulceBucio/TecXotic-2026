@@ -13,6 +13,7 @@ export interface ControlState {
     connected: boolean
     mode: string
     drive_method: DriveMethod
+    speed: number
     motion: MotionCommand
 }
 
