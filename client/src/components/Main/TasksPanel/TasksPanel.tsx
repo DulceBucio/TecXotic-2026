@@ -1,13 +1,37 @@
 import './TasksPanel.css'
+import { Box, Anchor, Gem } from 'lucide-react'
+import { vehicleController } from '../../../controllers/vehicleController'
 
 type TasksPanelProps = {
     showTasks: boolean
+    selectedTask: string | null
     toggleTasksPanel: () => void
+    selectTask: (taskId: string) => void
 }
+
+const tasks = [
+    {
+        id: '3d-model',
+        title: '3D MODEL',
+        icon: <Box size={34} />
+    },
+    {
+        id: 'recovery-crab-gear',
+        title: 'CRAB COUNT',
+        icon: <Anchor size={34} />
+    },
+    {
+        id: 'iceberg-tracking',
+        title: 'ICEBERG',
+        icon: <Gem size={34} />
+    }
+]
 
 export default function TasksPanel({
     showTasks,
-    toggleTasksPanel
+    selectedTask,
+    toggleTasksPanel,
+    selectTask
 }: TasksPanelProps) {
     return (
         <>
@@ -21,9 +45,21 @@ export default function TasksPanel({
             <div className={`tasks-panel ${showTasks ? 'open' : ''}`}>
                 <div className='tasks-panel-header'>TASKS</div>
 
-                <div className='task-box'></div>
-                <div className='task-box'></div>
-                <div className='task-box'></div>
+                <div className='tasks-list'>
+                    {tasks.map((task) => (
+                        <button
+                            key={task.id}
+                            className={`task-box ${selectedTask === task.id ? 'selected' : ''}`}
+                            onClick={() => selectTask(task.id)}
+                        >
+                            <div className='task-box-icon'>
+                                {task.icon}
+                            </div>
+
+                            <span>{task.title}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
         </>
     )

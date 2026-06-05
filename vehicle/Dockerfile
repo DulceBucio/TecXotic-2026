@@ -1,6 +1,9 @@
-FROM python:3.11-slim-bullseye
+FROM debian:bullseye
 
 RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-opencv \
     git \
     gcc \
     g++ \
@@ -9,19 +12,18 @@ RUN apt-get update && apt-get install -y \
     libxslt1-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip3 install --upgrade pip setuptools wheel
+
 WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .
 
 EXPOSE 55000
 
-ENV MAVLINK_URL='tcp:127.0.0.1:5777'
+ENV MAVLINK_URL=tcp:127.0.0.1:5777
 
-CMD ["python", "main.py"]
-
-# docker run --rm -it --network host <image_id>
-
+CMD ["python3", "main.py"]

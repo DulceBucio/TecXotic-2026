@@ -36,6 +36,10 @@ class VehicleController {
         controlStore.updateCommand(input)
     }
 
+    setRoutine(action: 'start' | 'pause' | 'resume' | 'stop') {
+        this.commandService.send({ routine: action })
+    }
+
     stop() {
         controlStore.resetMotion()
         const state = controlStore.getState()

@@ -2,10 +2,11 @@ import type { MotionCommand, ControlState } from "../types/ControlCommand";
 
 class ControlStore {
     private state: ControlState = {
-        armed: false, 
+        armed: false,
         connected: false,
         mode: 'MANUAL',
         drive_method: 'manual',
+        speed: 1,
         motion: {
             pitch: 0,
             roll: 0,
@@ -32,8 +33,16 @@ class ControlStore {
         this.state.mode = mode
     }
 
+    setSpeed(value: number) {
+        this.state.speed = value
+    }
+
+    getSpeed() {
+        return this.state.speed
+    }
+
     updateCommand(motion: Partial<MotionCommand>) {
-        this.state.motion =  {
+        this.state.motion = {
             ...this.state.motion,
             ...motion
         }

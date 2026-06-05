@@ -2,3 +2,4 @@ pymavlink
 websockets
 gpiozero
 RPi.GPIO
+flask
