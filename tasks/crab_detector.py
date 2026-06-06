@@ -140,8 +140,8 @@ class CrabDetector:
 
     # -------------------------------------------------------------------------
 
-    def __init__(self, reference_dir: Optional[str] = None):
-        base = reference_dir or os.path.dirname(os.path.abspath(__file__))
+    def __init__(self):
+        base = os.path.dirname("tasks/crabs")
 
         # ORB + FLANN (LSH for binary descriptors)
         self.orb   = cv2.ORB_create(nfeatures=1000)

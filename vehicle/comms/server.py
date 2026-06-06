@@ -31,7 +31,7 @@ latest_frame = None
 frame_lock = threading.Lock()
 annotation_lock = threading.Lock()
 
-detector = CrabDetector(reference_dir=os.path.dirname(__file__))
+detector = CrabDetector()
 
 # Routine state — initialized in main() to avoid event loop issues
 routine_task = None
