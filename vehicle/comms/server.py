@@ -14,6 +14,8 @@ import numpy as np
 from .capture import Capture
 from flask import Flask, Response
 
+from tasks.crab_detector import CrabDetector
+
 navigator = Navigator()
 tool = Tool(navigator.navigator_board)
 clients = set()
@@ -27,6 +29,8 @@ last_motion = {
 # Shared frame state
 latest_frame = None
 frame_lock = threading.Lock()
+
+detector = CrabDetector(reference_dir=os.path.dirname(__file__))
 
 # Routine state — initialized in main() to avoid event loop issues
 routine_task = None
@@ -198,6 +202,35 @@ async def auto_routine():
         navigator.clear_motion()
         last_motion['method'] = None
 
+def run_on_camera(detector: CrabDetector) -> dict:
+    global latest_frame
+    with frame_lock:
+        if latest_frame is None:
+            logger.warning("run_on_camera: camera not ready")
+            return
+        frame_copy = latest_frame.copy()          
+
+    detections = detector.detect(frame_copy)      
+    annotated  = detector.draw(frame_copy, detections)
+
+    with frame_lock:
+        latest_frame = annotated  
+
+    return {
+        "total":    len(detections),
+        "invasive": sum(1 for d in detections if d.is_invasive),
+        "detections": [
+            {
+                "species":    d.species,
+                "confidence": d.confidence,
+                "is_invasive": d.is_invasive,
+                "bbox":       d.bbox,        # (x, y, w, h)
+                "method":     d.method,
+            }
+            for d in detections
+        ]
+    }           
+
 # ==== WEBSOCKET ====
 
 async def echo(websocket):
@@ -213,6 +246,7 @@ async def echo(websocket):
                 drive_method = None
                 arm_result = None
                 routine_result = None
+                crab_result = None
 
                 if 'arm' in commands:
                     arm_result = handle_arm(commands['arm'])
@@ -238,7 +272,12 @@ async def echo(websocket):
                         tool.control_gripper('left-roll')
                     elif claw_action == 4:
                         tool.control_gripper('right-roll')
-
+                if 'crab_detector' in commands:
+                    if commands['crab_detector'] == 'capture':
+                        loop = asyncio.get_event_loop()
+                        crab_result = await loop.run_in_executor(None, run_on_camera, detector)
+                    else:
+                        crab_result = 'unknown crab_detector command'
                 if 'routine' in commands:
                     action = commands['routine']
                     if action == 'start':
@@ -258,15 +297,15 @@ async def echo(websocket):
                         if routine_task and not routine_task.done():
                             routine_task.cancel()
                         routine_result = 'stopped'
-                    if 'alpha' in commands:
-                        global ALPHA  # falta esto
-                        ALPHA = commands['alpha']
-                        routine_result = f'alpha set to {ALPHA}'
+                if 'alpha' in commands:
+                    global ALPHA  
+                    ALPHA = commands['alpha']
+                    routine_result = f'alpha set to {ALPHA}'
 
-                    if 'beta' in commands:
-                        global BETA   # falta esto
-                        BETA = commands['beta']
-                        routine_result = f'beta set to {BETA}'
+                if 'beta' in commands:
+                    global BETA   
+                    BETA = commands['beta']
+                    routine_result = f'beta set to {BETA}'
                     
                 if routine_task and not routine_task.done():
                     r_status = 'running' if routine_paused.is_set() else 'paused'
@@ -279,6 +318,7 @@ async def echo(websocket):
                     "routine_result": routine_result,
                     "routine_status": r_status,
                     "navigator_status": navigator.status(),
+                    "crab_detector_result": crab_result,
                 }
 
                 await websocket.send(json.dumps(status))
