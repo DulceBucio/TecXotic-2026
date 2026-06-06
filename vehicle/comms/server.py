@@ -20,6 +20,8 @@ from crab_detector import CrabDetector
 _crab_detector      = None
 _crab_detector_lock = threading.Lock()
 
+from tasks.crab_detector import CrabDetector
+
 navigator = Navigator()
 tool = Tool(navigator.navigator_board)
 clients = set()
@@ -33,10 +35,16 @@ last_motion = {
 # Shared frame state
 latest_frame = None
 frame_lock = threading.Lock()
+annotation_lock = threading.Lock()
+
+detector = CrabDetector()
 
 # Routine state — initialized in main() to avoid event loop issues
 routine_task = None
 routine_paused = None
+routine_active = False
+
+latest_annotation = None  # Store latest crab detections for overlay
 
 IMG_FOR_PHASE1 = 3
 IMG_FOR_PHASE2 = IMG_FOR_PHASE1 + 3
@@ -107,7 +115,7 @@ def process_frame(frame, frame_center):
 
 def capture_loop(capture):
     """Single VideoCapture consumer — writes processed frames to latest_frame."""
-    global latest_frame
+    global latest_frame, latest_annotation
 
     frame_center = (
         capture.cap.get(cv2.CAP_PROP_FRAME_WIDTH)  / 2,
@@ -117,7 +125,14 @@ def capture_loop(capture):
     while True:
         ret, frame = capture.get_frame()
         if ret:
-            processed, _, _ = process_frame(frame, frame_center)
+            if routine_active:                                   
+                processed, _, _ = process_frame(frame, frame_center)
+            else:
+                processed = frame                               
+            with annotation_lock:
+                annotation = latest_annotation
+            if annotation:
+                processed = detector.draw(processed, annotation)
             with frame_lock:
                 latest_frame = processed
 
@@ -204,10 +219,40 @@ async def auto_routine():
         navigator.clear_motion()
         last_motion['method'] = None
 
+def run_on_camera(detector: CrabDetector) -> dict:
+    global latest_frame, latest_annotation
+    with frame_lock:
+        if latest_frame is None:
+            logger.warning("run_on_camera: camera not ready")
+            return {"error": "camera not ready"}
+        frame_copy = latest_frame.copy()
+
+    detections = detector.detect(frame_copy)
+    annotated = detector.draw(frame_copy, detections)
+    with frame_lock:
+        latest_frame = annotated
+    with annotation_lock:
+        latest_annotation = detections
+
+    return {
+        "total":      len(detections),
+        "invasive":   sum(1 for d in detections if d.is_invasive),
+        "detections": [
+            {
+                "species":    d.species,
+                "confidence": d.confidence,
+                "is_invasive": d.is_invasive,
+                "bbox":       d.bbox,
+                "method":     d.method,
+            }
+            for d in detections
+        ]
+    }       
+
 # ==== WEBSOCKET ====
 
 async def echo(websocket):
-    global routine_task, routine_paused
+    global routine_task, routine_paused, latest_annotation, routine_active
 
     clients.add(websocket)
     is_control_client = True
@@ -219,6 +264,7 @@ async def echo(websocket):
                 drive_method = None
                 arm_result = None
                 routine_result = None
+                crab_result = None
 
                 if 'arm' in commands:
                     arm_result = handle_arm(commands['arm'])
@@ -244,35 +290,46 @@ async def echo(websocket):
                         tool.control_gripper('left-roll')
                     elif claw_action == 4:
                         tool.control_gripper('right-roll')
-
+                if 'crab_detector' in commands:
+                    if commands['crab_detector'] == 'capture':
+                        loop = asyncio.get_event_loop()
+                        crab_result = await loop.run_in_executor(None, run_on_camera, detector)
+                    elif commands['crab_detector'] == 'stop':
+                        with annotation_lock:          
+                            latest_annotation = None
+                        crab_result = 'crab detection stopped'  
+                    else:
+                        crab_result = 'unknown crab_detector command'
                 if 'routine' in commands:
                     action = commands['routine']
                     if action == 'start':
                         if routine_task is None or routine_task.done():
                             routine_paused.set()
                             routine_task = asyncio.create_task(auto_routine())
+                            routine_active = True    
                             routine_result = 'started'
-                        else:
-                            routine_result = 'already running'
-                    elif action == 'pause':
-                        routine_paused.clear()
-                        routine_result = 'paused'
-                    elif action == 'resume':
-                        routine_paused.set()
-                        routine_result = 'resumed'
                     elif action == 'stop':
                         if routine_task and not routine_task.done():
                             routine_task.cancel()
+                        routine_active = False       
                         routine_result = 'stopped'
-                    if 'alpha' in commands:
-                        global ALPHA  # falta esto
-                        ALPHA = commands['alpha']
-                        routine_result = f'alpha set to {ALPHA}'
+                    elif action == 'pause':
+                        routine_paused.clear()
+                        routine_active = False       
+                        routine_result = 'paused'
+                    elif action == 'resume':
+                        routine_paused.set()
+                        routine_active = True        
+                        routine_result = 'resumed'
+                if 'alpha' in commands:
+                    global ALPHA  
+                    ALPHA = commands['alpha']
+                    routine_result = f'alpha set to {ALPHA}'
 
-                    if 'beta' in commands:
-                        global BETA   # falta esto
-                        BETA = commands['beta']
-                        routine_result = f'beta set to {BETA}'
+                if 'beta' in commands:
+                    global BETA   
+                    BETA = commands['beta']
+                    routine_result = f'beta set to {BETA}'
                     
                 if routine_task and not routine_task.done():
                     r_status = 'running' if routine_paused.is_set() else 'paused'
@@ -285,6 +342,7 @@ async def echo(websocket):
                     "routine_result": routine_result,
                     "routine_status": r_status,
                     "navigator_status": navigator.status(),
+                    "crab_detector_result": crab_result,
                 }
 
                 await websocket.send(json.dumps(status))
