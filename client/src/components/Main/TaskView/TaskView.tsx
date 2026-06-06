@@ -1,6 +1,7 @@
 import './TaskView.css'
 import BlueCrabReference from '../../../assets/blue-crab-reference.png'
 import { Box, Anchor, Gem, X, CheckCircle, Camera, Play } from 'lucide-react'
+import { vehicleController } from '../../../controllers/vehicleController'
 
 type TaskViewProps = {
     selectedTask: string | null
@@ -75,6 +76,28 @@ export default function TaskView({
                             <strong>68%</strong>
                         </div>
                     </div>
+                                       <div className='task-view-actions'>
+                        <button className='task-action-btn' onClick={() => vehicleController.setRoutine('start')}>
+                            <Play size={15} />
+                            start
+                        </button>
+
+                        <button className='task-action-btn' onClick={() => vehicleController.setRoutine('pause')}>
+                            <Camera size={15} />
+                            pause
+                        </button>
+
+                        
+                        <button className='task-action-btn' onClick={() => vehicleController.setRoutine('resume')}>
+                            <Camera size={15} />
+                            resume
+                        </button>
+
+                        <button className='task-action-btn complete' onClick={() => vehicleController.setRoutine('stop')}>
+                            <CheckCircle size={15} />
+                            complete
+                        </button>
+                    </div>
                 </div>
             )
         }
@@ -146,6 +169,22 @@ export default function TaskView({
                             Shape and color pattern match the requested target.
                         </div>
                     </div>
+                    <div className='task-view-actions'>
+                        <button className='task-action-btn' onClick={() => vehicleController.setCrabDetection('capture')}>
+                            <Play size={15} />
+                            start
+                        </button>
+
+                        <button className='task-action-btn'>
+                            <Camera size={15} />
+                            evidence
+                        </button>
+
+                        <button className='task-action-btn complete' onClick={() => vehicleController.setCrabDetection('stop')}>
+                            <CheckCircle size={15} />
+                            complete
+                        </button>
+                    </div>
                 </div>
             )
         }
@@ -204,6 +243,22 @@ export default function TaskView({
                             </div>
                         </div>
                     </div>
+                    <div className='task-view-actions'>
+                        <button className='task-action-btn'>
+                            <Play size={15} />
+                            start
+                        </button>
+
+                        <button className='task-action-btn'>
+                            <Camera size={15} />
+                            evidence
+                        </button>
+
+                        <button className='task-action-btn complete'>
+                            <CheckCircle size={15} />
+                            complete
+                        </button>
+                    </div>
                 </div>
             )
         }
@@ -223,22 +278,7 @@ export default function TaskView({
 
                 {renderTaskContent()}
 
-                <div className='task-view-actions'>
-                    <button className='task-action-btn'>
-                        <Play size={15} />
-                        start
-                    </button>
-
-                    <button className='task-action-btn'>
-                        <Camera size={15} />
-                        evidence
-                    </button>
-
-                    <button className='task-action-btn complete'>
-                        <CheckCircle size={15} />
-                        complete
-                    </button>
-                </div>
+                
             </div>
         </div>
     )
