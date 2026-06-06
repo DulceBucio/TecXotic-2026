@@ -5,14 +5,20 @@ import asyncio
 import json
 from comms.navigator import Navigator
 from comms.tool import Tool
-import logging 
+import logging
 import time
 import cv2
 import os
+import base64
 import numpy as np
 
 from .capture import Capture
-from flask import Flask, Response
+from flask import Flask, Response, request, jsonify
+from crab_detector import CrabDetector
+
+# Lazy singleton — initialised on first request, shared across all threads.
+_crab_detector      = None
+_crab_detector_lock = threading.Lock()
 
 navigator = Navigator()
 tool = Tool(navigator.navigator_board)
@@ -337,6 +343,76 @@ def video_feed():
         generate_from_latest(),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
+
+
+def _get_crab_detector():
+    """Return the shared CrabDetector, initialising it on first request."""
+    global _crab_detector
+    if _crab_detector is None:
+        with _crab_detector_lock:
+            if _crab_detector is None:
+                try:
+                    _crab_detector = CrabDetector()
+                    logger.info('CrabDetector initialised')
+                except Exception as exc:
+                    logger.error(f'CrabDetector init failed: {exc}')
+    return _crab_detector
+
+
+@flask_app.route('/detect/crabs', methods=['POST'])
+def detect_crabs():
+    """
+    POST /detect/crabs
+
+    Accepts an image as multipart/form-data (field "image") or raw request body.
+    Returns JSON:
+      {
+        "green_crab_count": <int>,
+        "total_detections": <int>,
+        "image":            "<base64 JPEG with bounding boxes>",
+        "detections": [
+          { "species": str, "confidence": float, "bbox": [x,y,w,h], "is_invasive": bool }
+        ]
+      }
+    """
+    detector = _get_crab_detector()
+    if detector is None:
+        return jsonify({'error': 'Crab detector failed to initialise'}), 503
+
+    raw = request.files['image'].read() if 'image' in request.files else request.data
+    if not raw:
+        return jsonify({'error': 'No image provided'}), 400
+
+    frame = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
+    if frame is None:
+        return jsonify({'error': 'Could not decode image'}), 422
+
+    try:
+        detections = detector.detect(frame)
+        annotated  = detector.draw(frame, detections)
+    except Exception as exc:
+        logger.error(f'Detection error: {exc}')
+        return jsonify({'error': str(exc)}), 500
+
+    ok, buf = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    if not ok:
+        return jsonify({'error': 'Failed to encode result image'}), 500
+
+    return jsonify({
+        'green_crab_count': sum(1 for d in detections if d.is_invasive),
+        'total_detections': len(detections),
+        'image':            base64.b64encode(buf).decode('utf-8'),
+        'detections': [
+            {
+                'species':     d.species,
+                'confidence':  d.confidence,
+                'bbox':        list(d.bbox),
+                'is_invasive': d.is_invasive,
+            }
+            for d in detections
+        ],
+    })
+
 
 def run_flask():
     logger.info('Starting Flask video server on port 5000')

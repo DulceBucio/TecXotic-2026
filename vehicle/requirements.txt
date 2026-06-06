@@ -3,3 +3,5 @@ websockets
 gpiozero
 RPi.GPIO
 flask
+opencv-python
+numpy
