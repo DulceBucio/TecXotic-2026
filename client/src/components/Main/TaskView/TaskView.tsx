@@ -2,6 +2,7 @@ import './TaskView.css'
 import BlueCrabReference from '../../../assets/blue-crab-reference.png'
 import { Box, Anchor, Gem, X, CheckCircle, Camera, Play } from 'lucide-react'
 import { vehicleController } from '../../../controllers/vehicleController'
+import { VideoFeed } from '../VideoFeed/VideoFeed'
 
 type TaskViewProps = {
     selectedTask: string | null
@@ -74,6 +75,10 @@ export default function TaskView({
                         <div className='model-status'>
                             <span>Generating model</span>
                             <strong>68%</strong>
+                            <div className='video-container'>
+                                <VideoFeed />
+                                {/* <video ref={videoRef} autoPlay playsInline /> */}
+                            </div>
                         </div>
                     </div>
                                        <div className='task-view-actions'>
@@ -143,7 +148,10 @@ export default function TaskView({
                     <div className='crab-image-panel'>
                         <div className='crab-image-placeholder'>
                             <div className='scan-line'></div>
-                            <span>Crab image feed</span>
+                            <div className='video-container'>
+                                <VideoFeed />
+                                {/* <video ref={videoRef} autoPlay playsInline /> */}
+                            </div>
                         </div>
                     </div>
 
