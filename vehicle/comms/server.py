@@ -36,6 +36,7 @@ detector = CrabDetector(reference_dir=os.path.dirname(__file__))
 # Routine state — initialized in main() to avoid event loop issues
 routine_task = None
 routine_paused = None
+routine_active = False
 
 latest_annotation = None  # Store latest crab detections for overlay
 
@@ -118,12 +119,15 @@ def capture_loop(capture):
     while True:
         ret, frame = capture.get_frame()
         if ret:
-            processed, _, _ = process_frame(frame, frame_center)
-            with annotation_lock:                       
+            if routine_active:                                   
+                processed, _, _ = process_frame(frame, frame_center)
+            else:
+                processed = frame                               
+            with annotation_lock:
                 annotation = latest_annotation
             if annotation:
                 processed = detector.draw(processed, annotation)
-            with frame_lock:                            
+            with frame_lock:
                 latest_frame = processed
 
 # ==== FLASK VIDEO ====
@@ -242,7 +246,7 @@ def run_on_camera(detector: CrabDetector) -> dict:
 # ==== WEBSOCKET ====
 
 async def echo(websocket):
-    global routine_task, routine_paused, latest_annotation
+    global routine_task, routine_paused, latest_annotation, routine_active
 
     clients.add(websocket)
     is_control_client = True
@@ -285,7 +289,7 @@ async def echo(websocket):
                         loop = asyncio.get_event_loop()
                         crab_result = await loop.run_in_executor(None, run_on_camera, detector)
                     elif commands['crab_detector'] == 'stop':
-                        with annotation_lock:          # ✅
+                        with annotation_lock:          
                             latest_annotation = None
                         crab_result = 'crab detection stopped'  
                     else:
@@ -296,19 +300,21 @@ async def echo(websocket):
                         if routine_task is None or routine_task.done():
                             routine_paused.set()
                             routine_task = asyncio.create_task(auto_routine())
+                            routine_active = True    
                             routine_result = 'started'
-                        else:
-                            routine_result = 'already running'
-                    elif action == 'pause':
-                        routine_paused.clear()
-                        routine_result = 'paused'
-                    elif action == 'resume':
-                        routine_paused.set()
-                        routine_result = 'resumed'
                     elif action == 'stop':
                         if routine_task and not routine_task.done():
                             routine_task.cancel()
+                        routine_active = False       
                         routine_result = 'stopped'
+                    elif action == 'pause':
+                        routine_paused.clear()
+                        routine_active = False       
+                        routine_result = 'paused'
+                    elif action == 'resume':
+                        routine_paused.set()
+                        routine_active = True        
+                        routine_result = 'resumed'
                 if 'alpha' in commands:
                     global ALPHA  
                     ALPHA = commands['alpha']
