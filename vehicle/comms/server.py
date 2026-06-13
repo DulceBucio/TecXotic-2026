@@ -33,9 +33,9 @@ last_motion = {
 }
 
 # Shared frame state
-latest_frame = None
+latest_frame = None   # annotated, for display
+raw_frame = None      # clean, for detection
 frame_lock = threading.Lock()
-annotation_lock = threading.Lock()
 
 detector = CrabDetector()
 
@@ -44,7 +44,10 @@ routine_task = None
 routine_paused = None
 routine_active = False
 
-latest_annotation = None  # Store latest crab detections for overlay
+# Crab detector state
+crab_detector_active = False
+latest_annotation = None
+annotation_lock = threading.Lock()
 
 IMG_FOR_PHASE1 = 3
 IMG_FOR_PHASE2 = IMG_FOR_PHASE1 + 3
@@ -113,9 +116,26 @@ def process_frame(frame, frame_center):
 
 # ==== CAPTURE LOOP ====
 
+
+def detection_loop():
+    global latest_annotation
+    while True:
+        if crab_detector_active:
+            with frame_lock:
+                if raw_frame is None:
+                    time.sleep(0.1)
+                    continue
+                frame_copy = raw_frame.copy()  # ← clean frame, not annotated
+
+            detections = detector.detect(frame_copy)
+            with annotation_lock:
+                latest_annotation = detections
+        else:
+            time.sleep(0.1)
+
+
 def capture_loop(capture):
-    """Single VideoCapture consumer — writes processed frames to latest_frame."""
-    global latest_frame, latest_annotation
+    global latest_frame, raw_frame
 
     frame_center = (
         capture.cap.get(cv2.CAP_PROP_FRAME_WIDTH)  / 2,
@@ -125,16 +145,19 @@ def capture_loop(capture):
     while True:
         ret, frame = capture.get_frame()
         if ret:
-            if routine_active:                                   
+            processed = frame
+            if routine_active:
                 processed, _, _ = process_frame(frame, frame_center)
-            else:
-                processed = frame                               
-            with annotation_lock:
-                annotation = latest_annotation
-            if annotation:
-                processed = detector.draw(processed, annotation)
-            with frame_lock:
+            elif crab_detector_active:
+                with annotation_lock:
+                    annotation = latest_annotation
+                if annotation:
+                    processed = detector.draw(frame.copy(), annotation)
+
+            with frame_lock:          
+                raw_frame = frame.copy()
                 latest_frame = processed
+
 
 # ==== FLASK VIDEO ====
 def generate_from_latest():
@@ -219,40 +242,10 @@ async def auto_routine():
         navigator.clear_motion()
         last_motion['method'] = None
 
-def run_on_camera(detector: CrabDetector) -> dict:
-    global latest_frame, latest_annotation
-    with frame_lock:
-        if latest_frame is None:
-            logger.warning("run_on_camera: camera not ready")
-            return {"error": "camera not ready"}
-        frame_copy = latest_frame.copy()
-
-    detections = detector.detect(frame_copy)
-    annotated = detector.draw(frame_copy, detections)
-    with frame_lock:
-        latest_frame = annotated
-    with annotation_lock:
-        latest_annotation = detections
-
-    return {
-        "total":      len(detections),
-        "invasive":   sum(1 for d in detections if d.is_invasive),
-        "detections": [
-            {
-                "species":    d.species,
-                "confidence": d.confidence,
-                "is_invasive": d.is_invasive,
-                "bbox":       d.bbox,
-                "method":     d.method,
-            }
-            for d in detections
-        ]
-    }       
-
 # ==== WEBSOCKET ====
 
 async def echo(websocket):
-    global routine_task, routine_paused, latest_annotation, routine_active
+    global routine_task, routine_paused, latest_annotation, routine_active, crab_detector_active
 
     clients.add(websocket)
     is_control_client = True
@@ -292,12 +285,13 @@ async def echo(websocket):
                         tool.control_gripper('right-roll')
                 if 'crab_detector' in commands:
                     if commands['crab_detector'] == 'capture':
-                        loop = asyncio.get_event_loop()
-                        crab_result = await loop.run_in_executor(None, run_on_camera, detector)
+                        crab_detector_active = True
+                        crab_result = 'crab detection started'
                     elif commands['crab_detector'] == 'stop':
-                        with annotation_lock:          
+                        with annotation_lock:
                             latest_annotation = None
-                        crab_result = 'crab detection stopped'  
+                        crab_detector_active = False
+                        crab_result = 'crab detection stopped'
                     else:
                         crab_result = 'unknown crab_detector command'
                 if 'routine' in commands:
@@ -308,6 +302,8 @@ async def echo(websocket):
                             routine_task = asyncio.create_task(auto_routine())
                             routine_active = True    
                             routine_result = 'started'
+                        else:
+                            routine_result = 'routine already running'
                     elif action == 'stop':
                         if routine_task and not routine_task.done():
                             routine_task.cancel()
@@ -497,6 +493,9 @@ async def main():
     # Single capture consumer thread
     capture_thread = threading.Thread(target=capture_loop, args=(capture,), daemon=True)
     capture_thread.start()
+
+    detection_thread = threading.Thread(target=detection_loop, daemon=True)  # ← add this
+    detection_thread.start()
 
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
