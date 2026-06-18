@@ -52,8 +52,8 @@
 .task-view-close {
     position: absolute;
     top: 14px;
-    right: 14px; 
-    z-index: 8;
+    right: 14px;
+    z-index: 10;
 
     width: 30px;
     height: 30px;
@@ -113,7 +113,8 @@
 .model-preview-panel,
 .crab-image-panel,
 .crab-results-panel,
-.radar-panel {
+.radar-panel,
+.edna-table-panel {
     border: 1px solid rgba(0, 217, 255, 0.28);
     border-radius: 18px;
 
@@ -130,6 +131,8 @@
     min-height: 0;
     min-width: 0;
     overflow: hidden;
+    position: relative;
+    z-index: 0;
 }
 
 .task-view-header {

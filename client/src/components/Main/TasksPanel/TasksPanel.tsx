@@ -1,5 +1,5 @@
 import './TasksPanel.css'
-import { Box, Anchor, Gem } from 'lucide-react'
+import { Box, Anchor, Gem, SquarePercent } from 'lucide-react'
 
 type TasksPanelProps = {
     showTasks: boolean
@@ -23,7 +23,12 @@ const tasks = [
         id: 'iceberg-tracking',
         title: 'ICEBERG',
         icon: <Gem size={34} />
-    }
+    },
+    {
+        id: 'edna-frequency',
+        title: 'EDNA',
+        icon: <SquarePercent size={34} />
+    } 
 ]
 
 export default function TasksPanel({

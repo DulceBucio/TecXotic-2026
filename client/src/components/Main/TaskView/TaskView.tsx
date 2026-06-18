@@ -3,6 +3,7 @@ import BlueCrabReference from '../../../assets/blue-crab-reference.png'
 import { Box, Anchor, Gem, X, CheckCircle, Camera, Play } from 'lucide-react'
 import { vehicleController } from '../../../controllers/vehicleController'
 import { VideoFeed } from '../VideoFeed/VideoFeed'
+import EdnaFrequency from '../EdnaFrequency/EdnaFrequency'
 
 type TaskViewProps = {
     selectedTask: string | null
@@ -77,7 +78,6 @@ export default function TaskView({
                         <div className='model-status'>
                             <span>Generating model</span>
                             <strong>68%</strong>
-                            {/* VideoFeed removed from here */}
                         </div>
                     </div>
                     <div className='task-view-actions'>
@@ -250,19 +250,23 @@ export default function TaskView({
         return null
     }
 
+    if (selectedTask == 'edna-frequency') {
+        return <EdnaFrequency />
+    }
+
     return (
         <div className='task-view-overlay'>
             <div className='task-view-screen'>
+    
+                {renderTaskContent()}
+    
                 <button
                     className='task-view-close'
                     onClick={closeTaskView}
                 >
                     <X size={16} />
                 </button>
-
-                {renderTaskContent()}
-
-                
+    
             </div>
         </div>
     )
