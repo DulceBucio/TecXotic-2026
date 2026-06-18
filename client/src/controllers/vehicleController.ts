@@ -40,7 +40,7 @@ class VehicleController {
     }
 
     setCrabDetection(action: 'capture' | 'stop') {
-        this.commandService.send({ crab_detection: action })
+        this.commandService.send({ crab_detector: action })
     }
 
     stop() {

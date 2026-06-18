@@ -27,7 +27,7 @@ export default function WebRTCStream() {
     
     return (
         <>
-            <video ref={videoRef} autoPlay playsInline />
+            <video className='webrtc-stream' ref={videoRef} autoPlay playsInline />
         </>
     )
 }

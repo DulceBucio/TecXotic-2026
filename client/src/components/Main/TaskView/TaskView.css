@@ -15,6 +15,8 @@
 }
 
 .task-view-screen {
+    display: flex;
+    flex-direction: column;
     position: relative;
 
     width: calc(100% - 42px);
@@ -33,6 +35,7 @@
         inset 0 0 18px rgba(255, 180, 0, 0.08);
 
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .task-view-screen::before {
@@ -49,7 +52,7 @@
 .task-view-close {
     position: absolute;
     top: 14px;
-    right: 1150px;
+    right: 14px; 
     z-index: 8;
 
     width: 30px;
@@ -85,22 +88,25 @@
 }
 
 .task-layout {
-    height: calc(100% - 48px);
-
+    height: calc(100% - 62px);
     display: grid;
     gap: 18px;
+    min-height: 0; 
 }
 
 .model-layout {
     grid-template-columns: 36% 64%;
+    grid-template-rows: 1fr;
 }
 
 .crab-layout {
-    grid-template-columns: 30% 42% 28%;
+    grid-template-columns: 30% 1fr;
+    grid-template-rows: 1fr;
 }
 
 .iceberg-layout {
     grid-template-columns: 32% 68%;
+    grid-template-rows: 1fr;
 }
 
 .task-info-panel,
@@ -120,6 +126,9 @@
 
     padding: 18px;
 
+    overflow: hidden;
+    min-height: 0;
+    min-width: 0;
     overflow: hidden;
 }
 
@@ -280,8 +289,20 @@
     overflow: hidden;
 }
 
+.model-grid > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    opacity: 0.6; 
+    z-index: 0;
+}
+
 .model-object {
     position: absolute;
+    z-index: 1;
     top: 50%;
     left: 50%;
 
@@ -467,6 +488,16 @@
     overflow: hidden;
 }
 
+.crab-image-placeholder img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    z-index: 0;
+}
+
 .scan-line {
     position: absolute;
     top: 0;
@@ -480,6 +511,7 @@
     box-shadow: 0 0 14px rgba(255, 180, 0, 0.9);
 
     animation: scanMove 2s linear infinite;
+    z-index: 1;
 }
 
 @keyframes scanMove {

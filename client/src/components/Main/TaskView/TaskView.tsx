@@ -63,6 +63,7 @@ export default function TaskView({
 
                     <div className='model-preview-panel'>
                         <div className='model-grid'>
+                            {/* decorative nodes sit on top of the feed */}
                             <div className='model-object'>
                                 <div className='model-node node-one'></div>
                                 <div className='model-node node-two'></div>
@@ -70,18 +71,16 @@ export default function TaskView({
                                 <div className='model-node node-four'></div>
                                 <div className='model-core'></div>
                             </div>
+                            <VideoFeed />  {/* fills the grid as background */}
                         </div>
 
                         <div className='model-status'>
                             <span>Generating model</span>
                             <strong>68%</strong>
-                            <div className='video-container'>
-                                <VideoFeed />
-                                {/* <video ref={videoRef} autoPlay playsInline /> */}
-                            </div>
+                            {/* VideoFeed removed from here */}
                         </div>
                     </div>
-                                       <div className='task-view-actions'>
+                    <div className='task-view-actions'>
                         <button className='task-action-btn' onClick={() => vehicleController.setRoutine('start')}>
                             <Play size={15} />
                             start
@@ -152,29 +151,6 @@ export default function TaskView({
                                 <VideoFeed />
                                 {/* <video ref={videoRef} autoPlay playsInline /> */}
                             </div>
-                        </div>
-                    </div>
-
-                    <div className='crab-results-panel'>
-                        <span className='task-section-label'>Results</span>
-
-                        <div className='result-row'>
-                            <span>Detected</span>
-                            <strong>Blue Crab</strong>
-                        </div>
-
-                        <div className='result-row'>
-                            <span>Confidence</span>
-                            <strong>91%</strong>
-                        </div>
-
-                        <div className='result-row'>
-                            <span>Status</span>
-                            <strong>Match</strong>
-                        </div>
-
-                        <div className='result-notes'>
-                            Shape and color pattern match the requested target.
                         </div>
                     </div>
                     <div className='task-view-actions'>

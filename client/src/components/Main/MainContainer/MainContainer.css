@@ -33,11 +33,13 @@
 
 .video-container {
     flex: 1;
+    min-height: 0   ;
     width: 100%;
     display: flex;
 }
 
 .video-frame {
+    position: relative;
     width: 100%;
     height: 100%;
     border-radius: 22px;
@@ -48,7 +50,6 @@
     box-shadow:
         inset 0 0 18px rgba(0, 204, 255, 0.12),
         0 0 12px rgba(0, 204, 255, 0.18);
-    position: relative;
     overflow: hidden;
 }
 
