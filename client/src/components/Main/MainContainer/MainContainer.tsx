@@ -1,39 +1,13 @@
     import './MainContainer.css'
     import TopNavBar from '../TopNavBar/TopNavBar'
     import BottomNavBar from '../BottomNavBar/BottomNavBar'
-    import { useWebRTCStream } from '../../../hooks/useWebRTCStream'
-    import { webRTCSignallingURI } from '../../Constants'
     import TasksPanel from '../TasksPanel/TasksPanel'
     import { useEffect, useState } from 'react'
     import { startGamepadPolling } from '../../../input/gamepad'
-    import { useNavigate } from 'react-router-dom'
     import TaskView from '../TaskView/TaskView'
-    import { VideoFeed } from '../VideoFeed/VideoFeed'
+    import WebRTCStream from '../VideoFeed/WebRTCStream'
 
     export default function MainContainer() {
-        const navigate = useNavigate()
-        // const rtcConfiguration: RTCConfiguration = {
-        //     iceServers: [
-        //     { urls: "stun:stun.l.google.com:19302" },
-        //     { urls: "stun:stun1.l.google.com:19302" }
-        //     ],
-        //     iceCandidatePoolSize: 2
-        // }
-
-        // const {
-        //     videoRef,
-        //     streams,
-        //     start,
-        //     stop,
-        //     connected
-        // } = useWebRTCStream(webRTCSignallingURI, rtcConfiguration)
-
-        // useEffect(() => {
-        //     if (streams.length > 0 && !connected) {
-        //         start(streams[0])
-        //     }
-        // }, [streams, connected, start])
-        
         const [showTasks, setShowTasks] = useState<boolean>(false)
         const [selectedTask, setSelectedTask] = useState<string | null>(null)
 
@@ -74,8 +48,7 @@
                                 toggleTasksPanel={toggleTasksPanel}
                                 selectTask={selectTask}
                             />
-                            <VideoFeed />
-                            {/* <video ref={videoRef} autoPlay playsInline /> */}
+                        <WebRTCStream />
                         </div>
                     </div>
 

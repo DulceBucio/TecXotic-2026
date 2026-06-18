@@ -33,10 +33,6 @@ class ControlStore {
         this.state.mode = mode
     }
 
-    setSpeed(value: number) {
-        this.state.speed = value
-    }
-
     getSpeed() {
         return this.state.speed
     }

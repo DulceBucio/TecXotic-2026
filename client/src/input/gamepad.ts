@@ -132,7 +132,7 @@ export function startGamepadPolling() {
             break
             
           case 1: // B → stabilize
-            vehicleController.setMode("STABILIZE")
+            // vehicleController.setMode("STABILIZE")
             console.log('[Commands] Stabilize mode invoked')
             break
             

@@ -14,7 +14,6 @@ import numpy as np
 
 from .capture import Capture
 from flask import Flask, Response, request, jsonify
-from crab_detector import CrabDetector
 
 # Lazy singleton — initialised on first request, shared across all threads.
 _crab_detector      = None

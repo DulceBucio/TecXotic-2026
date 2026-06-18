@@ -14,7 +14,6 @@ class VehicleController {
 
     private connect() {
         this.commandService.connect(`ws://${onboard_computer}:55000`)
-        controlStore.setConnected(true)
     }
 
     arm() {

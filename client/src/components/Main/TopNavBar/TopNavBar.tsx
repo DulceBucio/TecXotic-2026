@@ -55,14 +55,14 @@ const TopNavBar = () => {
 
             <div className='buttons-container'>
                 <button
-                    className={`top-btn-small ${isRovConnected ? 'status-active' : ''}`}
+                    className={`top-btn-small ${isRovConnected ? '' : 'status-active'}`}
                     title={isRovConnected ? 'ROV connected' : 'ROV disconnected'}
                 >
                     <Wifi size={16} />
                 </button>
 
                 <button
-                    className={`top-btn-small ${isControllerConnected ? 'status-active' : ''}`}
+                    className={`top-btn-small ${isControllerConnected ? '' : 'status-active'}`}
                     title={isControllerConnected ? 'Controller connected' : 'Controller disconnected'}
                 >
                     <Gamepad2 size={16} />
