@@ -70,8 +70,14 @@ export function startGamepadPolling() {
 
             if (pressed && !wasPressed) {
                 switch (i) {
-                    case 8: vehicleController.disarm(); break
-                    case 9: vehicleController.arm(); break
+                    case 8: 
+                      vehicleController.disarm(); 
+                      console.log(`[Commands] Disarm invoked`)
+                      break
+                    case 9: 
+                      vehicleController.arm(); 
+                      console.log(`[Commands] Arm invoked`)
+                      break
                     case 0: vehicleController.setMode('MANUAL'); break
                 }
             }
@@ -79,6 +85,7 @@ export function startGamepadPolling() {
             prevButtons[i] = pressed
         })
 
+        console.log(`[Commands] pitch: ${pitch}, roll: ${roll}, yaw: ${yaw}, throttle: ${throttle}, buttons: ${clawButtons}`)
         requestAnimationFrame(poll)
     }
 
