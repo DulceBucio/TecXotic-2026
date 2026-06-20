@@ -1,10 +1,12 @@
 import { onboard_computer } from "../components/Constants";
 import { type MotionCommand } from "../types/ControlCommand";
 import { CommandService } from "../services/Commands/CommandService";
+import { TaskService, type RoutineAction } from "../services/Task/TaskService";
 import { controlStore } from "../state/controlStore";
 
 class VehicleController {
     public commandService = new CommandService()
+    public taskService = new TaskService()
     private CONTROL_RATE = 50 // ms = 20Hz
 
     constructor() {
@@ -35,12 +37,12 @@ class VehicleController {
         controlStore.updateCommand(input)
     }
 
-    setRoutine(action: 'start' | 'pause' | 'resume' | 'stop') {
-        this.commandService.send({ routine: action })
+    setRoutine(action: RoutineAction) {
+        return this.taskService.setRoutine(action)
     }
 
-    setCrabDetection(action: 'capture' | 'stop') {
-        this.commandService.send({ crab_detector: action })
+    getCrabDetection() {
+        return this.taskService.getCrabDetection()
     }
 
     stop() {
