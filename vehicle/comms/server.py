@@ -20,8 +20,6 @@ from crab_detector import CrabDetector
 _crab_detector      = None
 _crab_detector_lock = threading.Lock()
 
-from tasks.crab_detector import CrabDetector
-
 navigator = Navigator()
 tool = Tool(navigator.navigator_board)
 clients = set()
