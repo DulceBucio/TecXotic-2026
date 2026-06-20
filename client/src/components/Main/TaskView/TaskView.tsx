@@ -1,7 +1,9 @@
 import './TaskView.css'
+import { useState } from 'react'
 import BlueCrabReference from '../../../assets/blue-crab-reference.png'
 import { Box, Anchor, Gem, X, CheckCircle, Camera, Play } from 'lucide-react'
 import { vehicleController } from '../../../controllers/vehicleController'
+import { type CrabDetectionResponse } from '../../../services/Task/TaskService'
 import { VideoFeed } from '../VideoFeed/VideoFeed'
 import EdnaFrequency from '../EdnaFrequency/EdnaFrequency'
 
@@ -14,6 +16,23 @@ export default function TaskView({
     selectedTask,
     closeTaskView
 }: TaskViewProps) {
+    const [crabResult, setCrabResult] = useState<CrabDetectionResponse | null>(null)
+    const [crabLoading, setCrabLoading] = useState(false)
+    const [crabError, setCrabError] = useState<string | null>(null)
+
+    const captureCrabDetection = async () => {
+        setCrabLoading(true)
+        setCrabError(null)
+        try {
+            const result = await vehicleController.getCrabDetection()
+            setCrabResult(result)
+        } catch (e) {
+            setCrabError('Detection failed. Check the ROV connection.')
+        } finally {
+            setCrabLoading(false)
+        }
+    }
+
     if (!selectedTask) return null
 
     const renderTaskContent = () => {
@@ -35,8 +54,8 @@ export default function TaskView({
                         <div className='task-view-section'>
                             <span className='task-section-label'>Objective</span>
                             <p>
-                                Analizar una imagen del entorno, como un coral o estructura submarina,
-                                y construir una representación visual tipo modelo 3D.
+                                Analyze an image of the environment, such as a coral or underwater
+                                structure, and build a 3D model-style visual representation.
                             </p>
                         </div>
 
@@ -46,17 +65,17 @@ export default function TaskView({
                             <div className='task-steps-list'>
                                 <div className='task-step'>
                                     <span>1</span>
-                                    <p>Capturar o revisar la imagen de referencia.</p>
+                                    <p>Capture or review the reference image.</p>
                                 </div>
 
                                 <div className='task-step'>
                                     <span>2</span>
-                                    <p>Identificar formas, bordes y volumen del objeto.</p>
+                                    <p>Identify the object's shapes, edges and volume.</p>
                                 </div>
 
                                 <div className='task-step'>
                                     <span>3</span>
-                                    <p>Generar el modelo visual aproximado.</p>
+                                    <p>Generate the approximate visual model.</p>
                                 </div>
                             </div>
                         </div>
@@ -124,8 +143,8 @@ export default function TaskView({
                         <div className='task-view-section'>
                             <span className='task-section-label'>Objective</span>
                             <p>
-                                Analizar la imagen indicada por el ROV para identificar el cangrejo
-                                solicitado y registrar los resultados de detección.
+                                Analyze the image provided by the ROV to identify the requested
+                                crab and record the detection results.
                             </p>
                         </div>
 
@@ -136,35 +155,63 @@ export default function TaskView({
                                 <img
                                     className='crab-reference-image'
                                     src={BlueCrabReference}
-                                    alt='Blue Crab reference'
+                                    alt='European Green Crab reference'
                                 />
                             </div>
 
-                            <strong>Blue Crab</strong>
+                            <strong>European Green Crab</strong>
                         </div>
+
+                        {(crabResult || crabError) && (
+                            <div className='crab-results-panel'>
+                                {crabError && <div className='result-notes'>{crabError}</div>}
+                                {crabResult && (
+                                    <>
+                                        <div className='result-row'>
+                                            <span>Crabs detected</span>
+                                            <strong>{crabResult.results.length}</strong>
+                                        </div>
+                                        <div className='result-row'>
+                                            <span>Invasive</span>
+                                            <strong>
+                                                {crabResult.results.filter(r => r.is_invasive).length}
+                                            </strong>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className='crab-image-panel'>
                         <div className='crab-image-placeholder'>
-                            <div className='scan-line'></div>
-                            <div className='video-container'>
-                                <VideoFeed />
-                                {/* <video ref={videoRef} autoPlay playsInline /> */}
-                            </div>
+                            {crabResult ? (
+                                <img
+                                    src={`data:image/jpeg;base64,${crabResult.image}`}
+                                    alt='Crab detection result'
+                                />
+                            ) : (
+                                <>
+                                    <div className='scan-line'></div>
+                                    <div className='video-container'>
+                                        <VideoFeed />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                     <div className='task-view-actions'>
-                        <button className='task-action-btn' onClick={() => vehicleController.setCrabDetection('capture')}>
+                        <button className='task-action-btn' onClick={captureCrabDetection} disabled={crabLoading}>
                             <Play size={15} />
-                            start
+                            {crabLoading ? 'analyzing' : 'detect'}
                         </button>
 
-                        <button className='task-action-btn'>
+                        <button className='task-action-btn' onClick={() => setCrabResult(null)}>
                             <Camera size={15} />
-                            evidence
+                            live feed
                         </button>
 
-                        <button className='task-action-btn complete' onClick={() => vehicleController.setCrabDetection('stop')}>
+                        <button className='task-action-btn complete' onClick={captureCrabDetection} disabled={crabLoading}>
                             <CheckCircle size={15} />
                             complete
                         </button>
@@ -191,8 +238,8 @@ export default function TaskView({
                         <div className='task-view-section'>
                             <span className='task-section-label'>Objective</span>
                             <p>
-                                Detectar y monitorear la posición de icebergs utilizando una vista tipo radar
-                                para apoyar la navegación del ROV.
+                                Detect and monitor the position of icebergs using a radar-style view
+                                to support the ROV's navigation.
                             </p>
                         </div>
                     </div>
