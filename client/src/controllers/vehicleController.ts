@@ -35,14 +35,6 @@ class VehicleController {
         controlStore.updateCommand(input)
     }
 
-    setRoutine(action: 'start' | 'pause' | 'resume' | 'stop') {
-        this.commandService.send({ routine: action })
-    }
-
-    setCrabDetection(action: 'capture' | 'stop') {
-        this.commandService.send({ crab_detector: action })
-    }
-
     stop() {
         controlStore.resetMotion()
         const state = controlStore.getState()
