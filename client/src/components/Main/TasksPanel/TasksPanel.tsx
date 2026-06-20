@@ -25,6 +25,11 @@ const tasks = [
         icon: <Gem size={34} />
     },
     {
+        id: 'iceberg-threat',
+        title: 'THREAT',
+        icon: <Gem size={34} />
+    },
+    {
         id: 'edna-frequency',
         title: 'EDNA',
         icon: <SquarePercent size={34} />

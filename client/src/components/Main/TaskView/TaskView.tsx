@@ -4,6 +4,7 @@ import { Box, Anchor, Gem, X, CheckCircle, Camera, Play } from 'lucide-react'
 import { vehicleController } from '../../../controllers/vehicleController'
 import { VideoFeed } from '../VideoFeed/VideoFeed'
 import EdnaFrequency from '../EdnaFrequency/EdnaFrequency'
+import IcebergThreat from '../IcebergThreat/IcebergThreat'
 
 type TaskViewProps = {
     selectedTask: string | null
@@ -248,6 +249,10 @@ export default function TaskView({
         }
 
         return null
+    }
+    
+    if (selectedTask == 'iceberg-threat') {
+        return <IcebergThreat />
     }
 
     if (selectedTask == 'edna-frequency') {

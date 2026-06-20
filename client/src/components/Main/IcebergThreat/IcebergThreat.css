@@ -1,0 +1,142 @@
+.iceberg-layout {
+    grid-template-columns: 30% 1fr;
+    grid-template-rows: 1fr;
+    position: relative;
+    z-index: 0;
+}
+
+.iceberg-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: auto;
+}
+
+.iceberg-stat {
+    background: rgba(0, 217, 255, 0.06);
+    border: 1px solid rgba(0, 217, 255, 0.18);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.iceberg-stat span {
+    display: block;
+    font-size: 10px;
+    color: rgba(230, 251, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.iceberg-stat strong {
+    display: block;
+    font-size: 18px;
+    color: #e6fbff;
+    margin-top: 2px;
+}
+
+.threat-green-bg { border-color: rgba(61, 220, 132, 0.4); background: rgba(61, 220, 132, 0.06); }
+.threat-green-bg strong { color: #3ddc84; }
+
+.threat-yellow-bg { border-color: rgba(255, 204, 77, 0.4); background: rgba(255, 204, 77, 0.06); }
+.threat-yellow-bg strong { color: #ffcc4d; }
+
+.threat-red-bg { border-color: rgba(255, 77, 77, 0.4); background: rgba(255, 77, 77, 0.06); }
+.threat-red-bg strong { color: #ff4d4d; }
+
+.iceberg-table-panel {
+    overflow-y: auto;
+    padding: 14px;
+}
+
+.iceberg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.iceberg-table th {
+    font-size: 10px;
+    color: rgba(230, 251, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.15);
+    padding: 8px;
+    text-align: left;
+}
+
+.iceberg-table td {
+    padding: 8px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.08);
+    color: #e6fbff;
+    vertical-align: middle;
+}
+
+.iceberg-table tbody tr:last-child td { border-bottom: none; }
+
+.iceberg-platform-name {
+    font-weight: 700;
+    color: #ffcc4d;
+    white-space: nowrap;
+}
+
+.iceberg-readonly {
+    color: rgba(230, 251, 255, 0.55);
+    font-size: 12px;
+}
+
+.iceberg-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    border-radius: 8px;
+    padding: 5px 8px;
+    color: #e6fbff;
+    font-size: 12px;
+    outline: none;
+}
+
+.iceberg-input:focus {
+    border-color: #00d9ff;
+}
+
+.iceberg-input-sm {
+    max-width: 70px;
+}
+
+.threat-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+}
+
+.threat-green {
+    color: #3ddc84;
+    border: 1px solid rgba(61, 220, 132, 0.7);
+    background: rgba(61, 220, 132, 0.1);
+    box-shadow: 0 0 8px rgba(61, 220, 132, 0.35);
+}
+
+.threat-yellow {
+    color: #ffcc4d;
+    border: 1px solid rgba(255, 204, 77, 0.7);
+    background: rgba(255, 204, 77, 0.1);
+    box-shadow: 0 0 8px rgba(255, 204, 77, 0.35);
+}
+
+.threat-red {
+    color: #ff4d4d;
+    border: 1px solid rgba(255, 77, 77, 0.7);
+    background: rgba(255, 77, 77, 0.1);
+    box-shadow: 0 0 8px rgba(255, 77, 77, 0.35);
+}
+
+.threat-pending {
+    color: rgba(230, 251, 255, 0.4);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    background: rgba(0, 217, 255, 0.04);
+}
