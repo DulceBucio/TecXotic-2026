@@ -35,23 +35,11 @@ LAST_FRAME_LOCK = threading.Lock()
 LAST_DETECTION = None
 LAST_DETECTION_LOCK = threading.Lock()
 
-# ROUTINE CONTROL
+# MOTION CONTROL (manual driving, from websocket commands)
 last_motion = {
     "method": None,
     "data": None
 }
-INTERVAL = 3
-IMG_FOR_PHASE1 = 15
-IMG_FOR_PHASE2 = IMG_FOR_PHASE1 + 10
-IMG_FOR_PHASE3 = IMG_FOR_PHASE2 + 5
-ROUTINE_ACTIVE = False
-ROUTINE_PAUSED = None
-ROUTINE_FINISHED = False
-
-# Reference to the asyncio event loop running in main(), so that
-# Flask routes (running in their own thread) can safely schedule
-# coroutines / mutate asyncio primitives on it.
-MAIN_LOOP = None
 
 # =============== All functions ===============
 # ============== ECHO AND HANDLE FUNCTIONS =============
@@ -220,54 +208,6 @@ def draw_on_frame(detector: CrabDetector, frame, detections):
     return detector.draw(frame, detections)
 
 
-# ============== Routine functions ==============
-async def start_routine():
-    logger.info('Auto routine started')
-    global ROUTINE_ACTIVE, ROUTINE_FINISHED
-    ROUTINE_ACTIVE = True
-    ROUTINE_FINISHED = False
-    phase_step = 0
-    phase_commands = [
-        {"pitch": 0,  "roll": 200, "throttle": 0,  "yaw": 50},
-        {"pitch": 10, "roll": 120, "throttle": 10, "yaw": 30},
-        {"pitch": 20, "roll": 50,  "throttle": 20, "yaw": 10},
-    ]
-    try:
-        last_advance = asyncio.get_event_loop().time()
-
-        while phase_step < IMG_FOR_PHASE3:
-            await ROUTINE_PAUSED.wait()
-
-            if phase_step < IMG_FOR_PHASE1:
-                current_cmd = phase_commands[0]
-            elif phase_step < IMG_FOR_PHASE2:
-                current_cmd = phase_commands[1]
-            else:
-                current_cmd = phase_commands[2]
-
-            last_motion['method'] = 'manual'
-            last_motion['data'] = {"drive_method": "manual", **current_cmd, "buttons": 0}
-
-            now = asyncio.get_event_loop().time()
-            if now - last_advance >= INTERVAL:
-                phase_step += 1
-                last_advance = now
-                logger.info(f'Routine: phase_step {phase_step}')
-
-            await asyncio.sleep(0.05)
-
-        logger.info('Auto routine completed')
-        navigator.clear_motion()
-        last_motion['method'] = None
-        ROUTINE_ACTIVE = False
-        ROUTINE_FINISHED = True
-    except asyncio.CancelledError:
-        logger.info('Auto routine cancelled')
-        navigator.clear_motion()
-        last_motion['method'] = None
-        ROUTINE_ACTIVE = False
-
-
 # Flask server and its routes
 flask_app = Flask(__name__)
 
@@ -280,6 +220,25 @@ def video_feed():
         generate_from_latest(),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
+
+
+@flask_app.route('/capture', methods=['GET'])
+def get_capture():
+    """
+    Returns the latest raw frame as base64 JPEG, with no detection involved.
+    """
+    with LAST_FRAME_LOCK:
+        frame = LAST_FRAME.copy() if LAST_FRAME is not None else None
+
+    if frame is None:
+        return jsonify({'error': 'No frame available'}), 500
+
+    ok, buffer = cv2.imencode('.jpg', frame)
+    if not ok:
+        return jsonify({'error': 'Failed to encode image'}), 500
+
+    jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+    return jsonify({'image': jpg_as_text})
 
 
 @flask_app.route('/crab-detection', methods=['GET'])
@@ -309,64 +268,15 @@ def get_crab_detection():
     })
 
 
-@flask_app.route('/routine', methods=['POST'])
-def start_auto_routine():
-    global ROUTINE_PAUSED, ROUTINE_ACTIVE, ROUTINE_FINISHED
-
-    body = request.get_json()
-    action = body.get('action') if body else None
-
-    if action == 'start':
-        if ROUTINE_ACTIVE:
-            return jsonify({'status': 'Routine already active'}), 400
-        ROUTINE_PAUSED = asyncio.Event()
-        ROUTINE_PAUSED.set()
-        # We're in a Flask request thread, not the asyncio event loop's
-        # thread, so we have to hand the coroutine to the loop explicitly.
-        asyncio.run_coroutine_threadsafe(start_routine(), MAIN_LOOP)
-        return jsonify({'status': 'Routine started'})
-
-    elif action == 'pause':
-        if not ROUTINE_ACTIVE:
-            return jsonify({'status': 'No active routine to pause'}), 400
-        if not ROUTINE_PAUSED.is_set():
-            return jsonify({'status': 'Routine already paused'}), 400
-        MAIN_LOOP.call_soon_threadsafe(ROUTINE_PAUSED.clear)
-        return jsonify({'status': 'Routine paused'})
-
-    elif action == 'resume':
-        if not ROUTINE_ACTIVE:
-            return jsonify({'status': 'No active routine to resume'}), 400
-        if ROUTINE_PAUSED.is_set():
-            return jsonify({'status': 'Routine already running'}), 400
-        MAIN_LOOP.call_soon_threadsafe(ROUTINE_PAUSED.set)
-        return jsonify({'status': 'Routine resumed'})
-
-    elif action == 'stop':
-        if not ROUTINE_ACTIVE:
-            return jsonify({'status': 'No active routine to stop'}), 400
-        ROUTINE_ACTIVE = False
-        ROUTINE_FINISHED = True
-        navigator.clear_motion()
-        last_motion['method'] = None
-        return jsonify({'status': 'Routine stopped'})
-
-    else:
-        return jsonify({'error': 'Invalid action'}), 400
-
-
 def run_flask():
     logger.info('Starting Flask video server on port 5000')
     flask_app.run(host='0.0.0.0', port=5000, threaded=True)
 
 
 async def main():
-    global MAIN_LOOP
-    MAIN_LOOP = asyncio.get_running_loop()
-
     capture_thread = threading.Thread(target=video_capture_loop, daemon=True)
     capture_thread.start()
-    
+
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
 
@@ -384,7 +294,7 @@ def run():
         logger.info('Server shutdown')
         navigator.clear_motion()
         navigator.disarm()
-        
+
 # package example:
 # {'drive_method': 'manual', 'mode': 'MANUAL', 'pitch': 500, 'roll': 0, 'throttle': 0, 'yaw': 0, 'buttons': 0}
 # {"arm": 1, "drive_method": "manual", "mode": "MANUAL", "pitch": 500, "roll": 0, "throttle": 0, "yaw": 0, "buttons": 0}

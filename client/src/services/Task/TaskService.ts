@@ -13,6 +13,12 @@ export type CrabDetectionResponse = {
     results: CrabDetection[]
 }
 
+export type CaptureResponse = {
+    image: string    // base64-encoded raw JPEG
+    filename: string // name of the .jpeg saved on the backend, e.g. capture_20260620_153000.jpeg
+    path: string      // full path on the backend's disk, e.g. .../captures/capture_20260620_153000.jpeg
+}
+
 export type RoutineAction = 'start' | 'pause' | 'resume' | 'stop'
 
 export class TaskService {
@@ -21,6 +27,12 @@ export class TaskService {
     async getCrabDetection(): Promise<CrabDetectionResponse> {
         const res = await fetch(`${this.baseUrl}/crab-detection`)
         if (!res.ok) throw new Error(`Crab detection failed: ${res.status}`)
+        return res.json()
+    }
+
+    async getCapture(): Promise<CaptureResponse> {
+        const res = await fetch(`${this.baseUrl}/capture`)
+        if (!res.ok) throw new Error(`Capture failed: ${res.status}`)
         return res.json()
     }
 

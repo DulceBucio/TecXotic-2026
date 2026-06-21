@@ -21,6 +21,11 @@ export default function TaskView({
     const [crabLoading, setCrabLoading] = useState(false)
     const [crabError, setCrabError] = useState<string | null>(null)
 
+    const [captureImage, setCaptureImage] = useState<string | null>(null)
+    const [captureFilename, setCaptureFilename] = useState<string | null>(null)
+    const [captureLoading, setCaptureLoading] = useState(false)
+    const [captureError, setCaptureError] = useState<string | null>(null)
+
     const captureCrabDetection = async () => {
         setCrabLoading(true)
         setCrabError(null)
@@ -31,6 +36,30 @@ export default function TaskView({
             setCrabError('Detection failed. Check the ROV connection.')
         } finally {
             setCrabLoading(false)
+        }
+    }
+
+    const downloadImage = (base64Image: string, filename: string) => {
+        const link = document.createElement('a')
+        link.href = `data:image/jpeg;base64,${base64Image}`
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
+
+    const takeCapture = async () => {
+        setCaptureLoading(true)
+        setCaptureError(null)
+        try {
+            const result = await vehicleController.getCapture()
+            setCaptureImage(result.image)
+            setCaptureFilename(result.filename)
+            downloadImage(result.image, result.filename)
+        } catch (e) {
+            setCaptureError('Capture failed. Check the ROV connection.')
+        } finally {
+            setCaptureLoading(false)
         }
     }
 
@@ -99,27 +128,23 @@ export default function TaskView({
                             <span>Generating model</span>
                             <strong>68%</strong>
                         </div>
+
+                        {(captureFilename || captureError) && (
+                            <div className='crab-results-panel'>
+                                {captureError && <div className='result-notes'>{captureError}</div>}
+                                {captureFilename && (
+                                    <div className='result-row'>
+                                        <span>Saved capture</span>
+                                        <strong>{captureFilename}</strong>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className='task-view-actions'>
-                        <button className='task-action-btn' onClick={() => vehicleController.setRoutine('start')}>
-                            <Play size={15} />
-                            start
-                        </button>
-
-                        <button className='task-action-btn' onClick={() => vehicleController.setRoutine('pause')}>
+                        <button className='task-action-btn' onClick={takeCapture} disabled={captureLoading}>
                             <Camera size={15} />
-                            pause
-                        </button>
-
-                        
-                        <button className='task-action-btn' onClick={() => vehicleController.setRoutine('resume')}>
-                            <Camera size={15} />
-                            resume
-                        </button>
-
-                        <button className='task-action-btn complete' onClick={() => vehicleController.setRoutine('stop')}>
-                            <CheckCircle size={15} />
-                            complete
+                            {captureLoading ? 'capturing' : 'capture'}
                         </button>
                     </div>
                 </div>

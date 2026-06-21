@@ -37,8 +37,8 @@ class VehicleController {
         controlStore.updateCommand(input)
     }
 
-    setRoutine(action: RoutineAction) {
-        return this.taskService.setRoutine(action)
+    getCapture() {
+        return this.taskService.getCapture()
     }
 
     getCrabDetection() {
