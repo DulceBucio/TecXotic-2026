@@ -52,9 +52,6 @@
                         </div>
                     </div>
 
-                    <div className='bottom-container'>
-                        <BottomNavBar />
-                    </div>
                 </div>
             </div>
         </>

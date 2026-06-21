@@ -1,84 +1,108 @@
 import { useState, useMemo } from 'react'
 import './IcebergThreat.css'
-import { Gem } from 'lucide-react'
+import { Gem, Plus, Trash2 } from 'lucide-react'
 
-type Platform = {
-    id: number
-    name: string
-    lat: number
-    lon: number
-    oceanDepth: number // meters, positive value
-    icebergLat: string
-    icebergLon: string
-    keelDepth: string
-}
+type Platform = { name: string; lat: number; lon: number; depth: number }
 
-const INITIAL_PLATFORMS: Platform[] = [
-    { id: 1, name: 'Hibernia', lat: 46.7504, lon: -48.7819, oceanDepth: 78, icebergLat: '', icebergLon: '', keelDepth: '' },
-    { id: 2, name: 'Sea Rose', lat: 46.7895, lon: -48.1417, oceanDepth: 107, icebergLat: '', icebergLon: '', keelDepth: '' },
-    { id: 3, name: 'Terra Nova', lat: 46.4, lon: -48.4, oceanDepth: 91, icebergLat: '', icebergLon: '', keelDepth: '' },
-    { id: 4, name: 'Hebron', lat: 46.544, lon: -48.498, oceanDepth: 93, icebergLat: '', icebergLon: '', keelDepth: '' },
+const PLATFORMS: Platform[] = [
+    { name: 'Hibernia', lat: 46.7504, lon: -48.7819, depth: 78 },
+    { name: 'Sea Rose', lat: 46.7895, lon: -48.1417, depth: 107 },
+    { name: 'Terra Nova', lat: 46.4, lon: -48.4, depth: 91 },
+    { name: 'Hebron', lat: 46.544, lon: -48.498, depth: 93 },
 ]
 
-function toRad(deg: number) {
-    return deg * Math.PI / 180
+type Report = {
+    id: number
+    latDeg: number; latMin: number; latSec: number
+    lonDeg: number; lonMin: number; lonSec: number
+    heading: number
+    keel: number
 }
 
-// Haversine distance in nautical miles
-function distanceNm(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const R = 3440.065 // Earth radius in nautical miles
-    const dLat = toRad(lat2 - lat1)
-    const dLon = toRad(lon2 - lon1)
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    return R * c
+function dmsToDecimal(deg: number, min: number, sec: number, negative: boolean) {
+    const val = deg + min / 60 + sec / 3600
+    return negative ? -val : val
 }
 
-type Threat = 'green' | 'yellow' | 'red' | 'pending'
+// xy in nautical miles relative to (refLat, refLon)
+function toXY(lat: number, lon: number, refLat: number, refLon: number) {
+    const x = (lon - refLon) * 60 * Math.cos((refLat * Math.PI) / 180) // east+
+    const y = (lat - refLat) * 60 // north+
+    return { x, y }
+}
 
-function getThreat(dist: number | null, keelDepth: number | null, oceanDepth: number): Threat {
-    if (dist === null || keelDepth === null || isNaN(dist) || isNaN(keelDepth)) return 'pending'
-    if (keelDepth >= oceanDepth * 1.1) return 'green' // grounds before reaching platform
-    if (dist > 10) return 'green'
-    if (dist >= 5) return 'yellow'
-    return 'red'
+function computeThreats(latDec: number, lonDec: number, heading: number, keel: number) {
+    const dirRad = (heading * Math.PI) / 180
+    const dirX = Math.sin(dirRad)
+    const dirY = Math.cos(dirRad)
+
+    return PLATFORMS.map(p => {
+        const { x, y } = toXY(p.lat, p.lon, latDec, lonDec)
+        let t = x * dirX + y * dirY
+        if (t < 0) t = 0 // ray only moves forward from current position
+        const closestX = t * dirX
+        const closestY = t * dirY
+        const dist = Math.sqrt((x - closestX) ** 2 + (y - closestY) ** 2)
+
+        const groundingThreshold = p.depth * 1.1
+        let threat: 'green' | 'yellow' | 'red'
+        let note = ''
+
+        if (keel >= groundingThreshold) {
+            threat = 'green'
+            note = 'grounds before reaching platform'
+        } else if (dist > 10) {
+            threat = 'green'
+        } else if (dist >= 5) {
+            threat = 'yellow'
+        } else {
+            threat = 'red'
+        }
+
+        return { platform: p.name, dist, threat, note }
+    })
 }
 
 export default function IcebergThreat() {
-    const [platforms, setPlatforms] = useState<Platform[]>(INITIAL_PLATFORMS)
+    const [latDeg, setLatDeg] = useState('')
+    const [latMin, setLatMin] = useState('')
+    const [latSec, setLatSec] = useState('0')
+    const [lonDeg, setLonDeg] = useState('')
+    const [lonMin, setLonMin] = useState('')
+    const [lonSec, setLonSec] = useState('0')
+    const [heading, setHeading] = useState('')
+    const [keel, setKeel] = useState('')
 
-    const update = (id: number, field: keyof Platform, value: string) => {
-        setPlatforms(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p))
+    const [reports, setReports] = useState<Report[]>([])
+
+    const current = useMemo(() => {
+        const ld = parseFloat(latDeg), lm = parseFloat(latMin), ls = parseFloat(latSec) || 0
+        const od = parseFloat(lonDeg), om = parseFloat(lonMin), os = parseFloat(lonSec) || 0
+        const hd = parseFloat(heading), kd = parseFloat(keel)
+
+        if ([ld, lm, od, om, hd, kd].some(v => isNaN(v))) return null
+
+        const latDec = dmsToDecimal(ld, lm, ls, false) // North
+        const lonDec = dmsToDecimal(od, om, os, true)  // West
+
+        return { latDec, lonDec, heading: hd, keel: kd, threats: computeThreats(latDec, lonDec, hd, kd) }
+    }, [latDeg, latMin, latSec, lonDeg, lonMin, lonSec, heading, keel])
+
+    const saveReport = () => {
+        const ld = parseFloat(latDeg), lm = parseFloat(latMin), ls = parseFloat(latSec) || 0
+        const od = parseFloat(lonDeg), om = parseFloat(lonMin), os = parseFloat(lonSec) || 0
+        const hd = parseFloat(heading), kd = parseFloat(keel)
+        if ([ld, lm, od, om, hd, kd].some(v => isNaN(v))) return
+
+        setReports(prev => [...prev, {
+            id: Date.now(),
+            latDeg: ld, latMin: lm, latSec: ls,
+            lonDeg: od, lonMin: om, lonSec: os,
+            heading: hd, keel: kd
+        }])
     }
 
-    const computed = useMemo(() => {
-        return platforms.map(p => {
-            const iLat = parseFloat(p.icebergLat)
-            const iLon = parseFloat(p.icebergLon)
-            const keel = parseFloat(p.keelDepth)
-
-            const hasPosition = !isNaN(iLat) && !isNaN(iLon)
-            const dist = hasPosition ? distanceNm(p.lat, p.lon, iLat, iLon) : null
-            const keelDepth = !isNaN(keel) ? keel : null
-            const threat = getThreat(dist, keelDepth, p.oceanDepth)
-
-            return { ...p, dist, threat }
-        })
-    }, [platforms])
-
-    const counts = useMemo(() => {
-        return computed.reduce(
-            (acc, p) => {
-                if (p.threat !== 'pending') acc[p.threat]++
-                return acc
-            },
-            { green: 0, yellow: 0, red: 0 }
-        )
-    }, [computed])
-
-    const resolvedCount = counts.green + counts.yellow + counts.red
+    const removeReport = (id: number) => setReports(prev => prev.filter(r => r.id !== id))
 
     return (
         <div className='task-layout iceberg-layout'>
@@ -93,95 +117,85 @@ export default function IcebergThreat() {
                     </div>
                 </div>
 
-                <div className='task-view-section'>
-                    <span className='task-section-label'>Objective</span>
-                    <p>
-                        Determinar el nivel de amenaza (verde, amarillo, rojo) para cada
-                        una de las cuatro plataformas, usando la posición del iceberg,
-                        su calado, y la profundidad del agua en cada ubicación.
-                    </p>
+                <div className='il-form-section'>
+                    <span className='task-section-label'>Position (DMS)</span>
+                    <div className='il-dms-row'>
+                        <input className='il-input il-input-sm' type='number' placeholder='°' value={latDeg} onChange={e => setLatDeg(e.target.value)} />
+                        <input className='il-input il-input-sm' type='number' placeholder="'" value={latMin} onChange={e => setLatMin(e.target.value)} />
+                        <input className='il-input il-input-sm' type='number' placeholder='"' value={latSec} onChange={e => setLatSec(e.target.value)} />
+                        <span className='il-dms-label'>N</span>
+                    </div>
+                    <div className='il-dms-row'>
+                        <input className='il-input il-input-sm' type='number' placeholder='°' value={lonDeg} onChange={e => setLonDeg(e.target.value)} />
+                        <input className='il-input il-input-sm' type='number' placeholder="'" value={lonMin} onChange={e => setLonMin(e.target.value)} />
+                        <input className='il-input il-input-sm' type='number' placeholder='"' value={lonSec} onChange={e => setLonSec(e.target.value)} />
+                        <span className='il-dms-label'>W</span>
+                    </div>
                 </div>
 
-                <div className='iceberg-stats'>
-                    <div className='iceberg-stat'>
-                        <span>Resolved</span>
-                        <strong>{resolvedCount} / 4</strong>
-                    </div>
-                    <div className='iceberg-stat threat-green-bg'>
-                        <span>Green</span>
-                        <strong>{counts.green}</strong>
-                    </div>
-                    <div className='iceberg-stat threat-yellow-bg'>
-                        <span>Yellow</span>
-                        <strong>{counts.yellow}</strong>
-                    </div>
-                    <div className='iceberg-stat threat-red-bg'>
-                        <span>Red</span>
-                        <strong>{counts.red}</strong>
+                <div className='il-form-section'>
+                    <span className='task-section-label'>Heading / Keel</span>
+                    <div className='il-dms-row'>
+                        <input className='il-input' type='number' placeholder='Heading °' value={heading} onChange={e => setHeading(e.target.value)} />
+                        <input className='il-input' type='number' placeholder='Keel (m)' value={keel} onChange={e => setKeel(e.target.value)} />
                     </div>
                 </div>
+
+                <button className='il-save-btn' onClick={saveReport}>
+                    <Plus size={14} />
+                    Save to log
+                </button>
             </div>
 
-            <div className='task-info-panel iceberg-table-panel'>
-                <table className='iceberg-table'>
-                    <thead>
-                        <tr>
-                            <th>Platform</th>
-                            <th>Depth (m)</th>
-                            <th>Iceberg Lat</th>
-                            <th>Iceberg Lon</th>
-                            <th>Keel (m)</th>
-                            <th>Distance (nm)</th>
-                            <th>Threat</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {computed.map(p => (
-                            <tr key={p.id}>
-                                <td className='iceberg-platform-name'>{p.name}</td>
-                                <td className='iceberg-readonly'>{p.oceanDepth}</td>
-                                <td>
-                                    <input
-                                        className='iceberg-input'
-                                        type='number'
-                                        step='0.0001'
-                                        placeholder='lat'
-                                        value={p.icebergLat}
-                                        onChange={e => update(p.id, 'icebergLat', e.target.value)}
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        className='iceberg-input'
-                                        type='number'
-                                        step='0.0001'
-                                        placeholder='lon'
-                                        value={p.icebergLon}
-                                        onChange={e => update(p.id, 'icebergLon', e.target.value)}
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        className='iceberg-input iceberg-input-sm'
-                                        type='number'
-                                        step='1'
-                                        placeholder='m'
-                                        value={p.keelDepth}
-                                        onChange={e => update(p.id, 'keelDepth', e.target.value)}
-                                    />
-                                </td>
-                                <td className='iceberg-readonly'>
-                                    {p.dist !== null ? p.dist.toFixed(2) : '—'}
-                                </td>
-                                <td>
-                                    <span className={`threat-badge threat-${p.threat}`}>
-                                        {p.threat === 'pending' ? 'pending' : p.threat}
-                                    </span>
-                                </td>
-                            </tr>
+            <div className='task-info-panel il-results-panel'>
+                <span className='task-section-label'>Platform threat levels</span>
+
+                {!current ? (
+                    <div className='il-empty'>Enter a position, heading, and keel depth to calculate</div>
+                ) : (
+                    <div className='il-cards'>
+                        {current.threats.map(t => (
+                            <div key={t.platform} className={`il-card il-card-${t.threat}`}>
+                                <span className='il-card-name'>{t.platform}</span>
+                                <span className={`threat-badge threat-${t.threat}`}>{t.threat}</span>
+                                <span className='il-card-dist'>{t.dist.toFixed(2)} nm</span>
+                                {t.note && <span className='il-card-note'>{t.note}</span>}
+                            </div>
                         ))}
-                    </tbody>
-                </table>
+                    </div>
+                )}
+
+                {reports.length > 0 && (
+                    <>
+                        <span className='task-section-label il-log-label'>Logged reports</span>
+                        <div className='il-log-table-wrap'>
+                            <table className='il-log-table'>
+                                <thead>
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Hdg</th>
+                                        <th>Keel</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reports.map(r => (
+                                        <tr key={r.id}>
+                                            <td>{r.latDeg}°{r.latMin}'{r.latSec}"N, {r.lonDeg}°{r.lonMin}'{r.lonSec}"W</td>
+                                            <td>{r.heading}°</td>
+                                            <td>{r.keel}m</td>
+                                            <td>
+                                                <button className='il-remove' onClick={() => removeReport(r.id)}>
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     )
