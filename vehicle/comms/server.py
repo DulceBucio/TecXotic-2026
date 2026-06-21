@@ -14,6 +14,7 @@ import numpy as np
 
 from .capture import Capture
 from flask import Flask, Response, request, jsonify
+from flask_cors import CORS
 from tasks.crab_detector import CrabDetector
 
 # =============== All instances of the classes ===============
@@ -210,6 +211,7 @@ def draw_on_frame(detector: CrabDetector, frame, detections):
 
 # Flask server and its routes
 flask_app = Flask(__name__)
+CORS(flask_app)
 
 
 @flask_app.route('/video', methods=['GET'])

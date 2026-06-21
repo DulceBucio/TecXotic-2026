@@ -3,5 +3,4 @@ websockets
 gpiozero
 RPi.GPIO
 flask
-opencv-python
-numpy
+flask-cors
