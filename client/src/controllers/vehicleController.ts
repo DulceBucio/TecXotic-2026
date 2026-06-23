@@ -45,6 +45,10 @@ class VehicleController {
         return this.taskService.getCrabDetection()
     }
 
+    getMeasurement() {
+        return this.taskService.getMeasurement()
+    }
+
     stop() {
         controlStore.resetMotion()
         const state = controlStore.getState()

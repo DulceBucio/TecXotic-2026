@@ -19,6 +19,10 @@ export type CaptureResponse = {
     path: string      // full path on the backend's disk, e.g. .../captures/capture_20260620_153000.jpeg
 }
 
+export type MeasurementResponse = {
+    measurement_px: number // largest X-axis span of the main contour, in pixels
+}
+
 export type RoutineAction = 'start' | 'pause' | 'resume' | 'stop'
 
 export class TaskService {
@@ -33,6 +37,12 @@ export class TaskService {
     async getCapture(): Promise<CaptureResponse> {
         const res = await fetch(`${this.baseUrl}/capture`)
         if (!res.ok) throw new Error(`Capture failed: ${res.status}`)
+        return res.json()
+    }
+
+    async getMeasurement(): Promise<MeasurementResponse> {
+        const res = await fetch(`${this.baseUrl}/measurement`)
+        if (!res.ok) throw new Error(`Measurement failed: ${res.status}`)
         return res.json()
     }
 

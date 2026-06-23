@@ -14,7 +14,6 @@ import numpy as np
 
 from .capture import Capture
 from flask import Flask, Response, request, jsonify
-from flask_cors import CORS
 from tasks.crab_detector import CrabDetector
 
 # =============== All instances of the classes ===============
@@ -41,6 +40,16 @@ last_motion = {
     "method": None,
     "data": None
 }
+
+# CAPTURES FOLDER (where /capture saves .jpeg files for later use,
+# e.g. by the 3D model generation script)
+CAPTURES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'captures')
+os.makedirs(CAPTURES_DIR, exist_ok=True)
+
+# MEASUREMENT SETTINGS (fixed brightness values — no trackbars on a server;
+# these mirror the original script's defaults: trackbar value 160 / 100 = 1.6)
+MEASUREMENT_ALPHA = 1.6
+MEASUREMENT_BETA = 0
 
 # =============== All functions ===============
 # ============== ECHO AND HANDLE FUNCTIONS =============
@@ -209,9 +218,57 @@ def draw_on_frame(detector: CrabDetector, frame, detections):
     return detector.draw(frame, detections)
 
 
+# ============== MEASUREMENT (largest X-axis span of the main contour) =============
+def apply_brightness(img):
+    """Same formula as the original trackbar-based script, but with fixed values
+    since a server has no UI for live sliders."""
+    return cv2.convertScaleAbs(img, alpha=MEASUREMENT_ALPHA, beta=MEASUREMENT_BETA)
+
+
+def ignore_blue(image):
+    """Mask out blue regions across the whole frame (same HSV range as the
+    original script's ignore_blue, but without the x1,y1,x2,y2 zone limiting,
+    since here we always want the full frame)."""
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower_blue = np.array([40, 50, 125])
+    upper_blue = np.array([130, 255, 255])
+    mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+    result = image.copy()
+    result[mask > 0] = [0, 0, 0]
+    return result
+
+
+def measure_largest_x_span(frame):
+    """
+    Runs brightness adjustment + blue masking, finds the largest contour by
+    area, and returns the distance (in pixels) between its leftmost and
+    rightmost points along the X axis.
+
+    Returns (measurement_px, contour_found: bool).
+    """
+    processed = apply_brightness(frame)
+    processed = ignore_blue(processed)
+
+    gray = cv2.cvtColor(processed, cv2.COLOR_BGR2GRAY)
+    _, thresh = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        return None, False
+
+    largest = max(contours, key=cv2.contourArea)
+
+    # Leftmost and rightmost points of the contour along the X axis
+    leftmost_x = largest[:, :, 0].min()
+    rightmost_x = largest[:, :, 0].max()
+
+    measurement_px = int(rightmost_x - leftmost_x)
+    return measurement_px, True
+
+
 # Flask server and its routes
 flask_app = Flask(__name__)
-CORS(flask_app)
 
 
 @flask_app.route('/video', methods=['GET'])
@@ -227,7 +284,9 @@ def video_feed():
 @flask_app.route('/capture', methods=['GET'])
 def get_capture():
     """
-    Returns the latest raw frame as base64 JPEG, with no detection involved.
+    Saves the latest raw frame as a .jpeg file in CAPTURES_DIR (no detection
+    involved) and returns the saved filename + the image as base64 so the
+    frontend can show an immediate preview.
     """
     with LAST_FRAME_LOCK:
         frame = LAST_FRAME.copy() if LAST_FRAME is not None else None
@@ -239,8 +298,19 @@ def get_capture():
     if not ok:
         return jsonify({'error': 'Failed to encode image'}), 500
 
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    filename = f'capture_{timestamp}.jpeg'
+    filepath = os.path.join(CAPTURES_DIR, filename)
+
+    with open(filepath, 'wb') as f:
+        f.write(buffer.tobytes())
+
     jpg_as_text = base64.b64encode(buffer).decode('utf-8')
-    return jsonify({'image': jpg_as_text})
+    return jsonify({
+        'image': jpg_as_text,
+        'filename': filename,
+        'path': filepath,
+    })
 
 
 @flask_app.route('/crab-detection', methods=['GET'])
@@ -268,6 +338,28 @@ def get_crab_detection():
             for d in (detections or [])
         ],
     })
+
+
+@flask_app.route('/measurement', methods=['GET'])
+def get_measurement():
+    """
+    Takes the latest frame, applies the same brightness + blue-masking
+    pipeline as the original trackbar script, finds the largest contour,
+    and returns the distance (in pixels) between its leftmost and
+    rightmost points along the X axis.
+    """
+    with LAST_FRAME_LOCK:
+        frame = LAST_FRAME.copy() if LAST_FRAME is not None else None
+
+    if frame is None:
+        return jsonify({'error': 'No frame available'}), 500
+
+    measurement_px, found = measure_largest_x_span(frame)
+
+    if not found:
+        return jsonify({'error': 'No contour detected'}), 422
+
+    return jsonify({'measurement_px': measurement_px})
 
 
 def run_flask():

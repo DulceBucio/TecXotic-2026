@@ -1,7 +1,7 @@
 import './TaskView.css'
 import { useState } from 'react'
 import BlueCrabReference from '../../../assets/blue-crab-reference.png'
-import { Box, Anchor, Gem, X, CheckCircle, Camera, Play } from 'lucide-react'
+import { Box, Anchor, Gem, X, CheckCircle, Camera, Play, Ruler } from 'lucide-react'
 import { vehicleController } from '../../../controllers/vehicleController'
 import { type CrabDetectionResponse } from '../../../services/Task/TaskService'
 import { VideoFeed } from '../VideoFeed/VideoFeed'
@@ -25,6 +25,10 @@ export default function TaskView({
     const [captureFilename, setCaptureFilename] = useState<string | null>(null)
     const [captureLoading, setCaptureLoading] = useState(false)
     const [captureError, setCaptureError] = useState<string | null>(null)
+
+    const [measurementPx, setMeasurementPx] = useState<number | null>(null)
+    const [measurementLoading, setMeasurementLoading] = useState(false)
+    const [measurementError, setMeasurementError] = useState<string | null>(null)
 
     const captureCrabDetection = async () => {
         setCrabLoading(true)
@@ -60,6 +64,19 @@ export default function TaskView({
             setCaptureError('Capture failed. Check the ROV connection.')
         } finally {
             setCaptureLoading(false)
+        }
+    }
+
+    const takeMeasurement = async () => {
+        setMeasurementLoading(true)
+        setMeasurementError(null)
+        try {
+            const result = await vehicleController.getMeasurement()
+            setMeasurementPx(result.measurement_px)
+        } catch (e) {
+            setMeasurementError('Measurement failed. Check the ROV connection.')
+        } finally {
+            setMeasurementLoading(false)
         }
     }
 
@@ -140,11 +157,28 @@ export default function TaskView({
                                 )}
                             </div>
                         )}
+
+                        {(measurementPx !== null || measurementError) && (
+                            <div className='crab-results-panel'>
+                                {measurementError && <div className='result-notes'>{measurementError}</div>}
+                                {measurementPx !== null && (
+                                    <div className='result-row'>
+                                        <span>Largest X span</span>
+                                        <strong>{measurementPx} px</strong>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className='task-view-actions'>
                         <button className='task-action-btn' onClick={takeCapture} disabled={captureLoading}>
                             <Camera size={15} />
                             {captureLoading ? 'capturing' : 'capture'}
+                        </button>
+
+                        <button className='task-action-btn' onClick={takeMeasurement} disabled={measurementLoading}>
+                            <Ruler size={15} />
+                            {measurementLoading ? 'measuring' : 'measure'}
                         </button>
                     </div>
                 </div>
@@ -268,6 +302,16 @@ export default function TaskView({
                                 to support the ROV's navigation.
                             </p>
                         </div>
+
+                        {(measurementPx !== null || measurementError) && (
+                            <div className='task-view-section'>
+                                <span className='task-section-label'>Measurement</span>
+                                {measurementError && <p>{measurementError}</p>}
+                                {measurementPx !== null && (
+                                    <p>Largest X span: <strong>{measurementPx} px</strong></p>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className='radar-panel'>
@@ -306,9 +350,9 @@ export default function TaskView({
                             start
                         </button>
 
-                        <button className='task-action-btn'>
-                            <Camera size={15} />
-                            evidence
+                        <button className='task-action-btn' onClick={takeMeasurement} disabled={measurementLoading}>
+                            <Ruler size={15} />
+                            {measurementLoading ? 'measuring' : 'measure'}
                         </button>
 
                         <button className='task-action-btn complete'>
